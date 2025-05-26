@@ -1,6 +1,6 @@
 MIT License
 
-Non-Commercial License for QuickClip++ Extension
+Non-Commercial License for QuickClip Pro Extension
 
 Copyright (c) 2025 [akasumitlamba](https://github.com/akasumitlamba)
 
