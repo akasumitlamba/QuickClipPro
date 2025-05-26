@@ -1,10 +1,10 @@
-# QuickClip++
+# QuickClip Pro
 
 A lightweight Chrome extension designed to help users track progress, organize information, and manage snippets efficiently with customizable tags.
 
 ## Overview
 
-The **QuickClip++ Extension** provides an intuitive way to track progress and manage snippets. It includes:
+The **QuickClip Pro Extension** provides an intuitive way to track progress and manage snippets. It includes:
 - A **main counter** for overall tracking.
 - **Mini-counters** for specific tasks.
 - **Snippet organization** with customizable tags and colors.
