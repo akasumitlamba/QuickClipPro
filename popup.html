@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Test Case Counter</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <a href="https://github.com/akasumitlamba" target="_blank" class="extension-name-link" title="Go to Creator Profile (akasumitlamba)">
+        QC++
+      </a>
+      <div class="header-title-counter">
+        <span class="logo-title"><b>Execution Count:</b></span>
+        <div class="counter-controls">
+          <button id="decrementBtn" aria-label="Decrement count">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <span id="counter">0</span>
+          <button id="incrementBtn" aria-label="Increment count">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+          </button>
+          <button id="resetBtn" class="reset-btn" aria-label="Reset count">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          </button>
+        </div>
+      </div>
+      <button id="settingsBtn" class="settings-btn" aria-label="Settings" title="Settings">
+        <svg class="icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+          <path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+        </svg>
+      </button>
+    </div>
+    
+    <!-- Additional Counters Grid -->
+    <div id="additionalCountersGrid" class="additional-counters-grid">
+      <!-- Additional counters will be dynamically added here -->
+    </div>
+
+    <div class="card">
+      <textarea id="snippetText" placeholder="Enter your snippet or link here..."></textarea>
+      <div class="image-preview-container" id="imagePreviewContainer" style="display: none;">
+        <img id="imagePreview" src="" alt="Preview">
+        <button id="removeImage" class="remove-image-btn" title="Remove image">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+      <div class="input-controls-row">
+        <div class="select-wrapper">
+          <select id="tagSelect" class="tag-select" aria-label="Select tag for new snippet">
+            <option value="created">Created</option>
+            <option value="closed">Closed</option>
+            <option value="reopened">Reopened</option>
+            <option value="note">Note</option>
+          </select>
+          <span class="select-arrow">
+            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 10l5 5 5-5z"/></svg>
+          </span>
+        </div>
+        <label for="imageUpload" class="image-upload-btn" title="Upload an image">
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+            <circle cx="8.5" cy="8.5" r="1.5"/>
+            <polyline points="21 15 16 10 5 21"/>
+          </svg>
+        </label>
+        <input type="file" id="imageUpload" accept="image/*" style="display: none;">
+        <button id="pasteSaveSnippet" aria-label="Paste and Save" title="Paste and Save">
+          Paste
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-left: 4px;">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+            <polyline points="7 3 7 8 15 8"/>
+          </svg>
+        </button>
+        <button id="saveSnippet" aria-label="Save" title="Save">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
+            <polyline points="17 21 17 13 7 13 7 21"/>
+            <polyline points="7 3 7 8 15 8"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Filter Row -->
+    <div class="filter-row">
+      <div class="tag-filter-container">
+        <select id="tagFilter" class="tag-filter-select" aria-label="Filter snippets by tag">
+          <option value="all">All Tags</option>
+          <option value="created">Created</option>
+          <option value="closed">Closed</option>
+          <option value="reopened">Reopened</option>
+          <option value="note">Note</option>
+        </select>
+        <span class="select-arrow">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 10l5 5 5-5z"/></svg>
+        </span>
+      </div>
+
+      <!-- Date Filter -->
+      <div class="filter-group date-filter-group">
+        <input type="date" id="dateFilter" class="date-filter-input" aria-label="Filter snippets by date" placeholder="Date">
+      </div>
+
+      <!-- Search Filter -->
+      <div class="filter-group search-filter-group">
+        <input type="search" id="searchSnippets" class="search-input" placeholder="Search..." aria-label="Search snippet content">
+      </div>
+    </div>
+
+    <div id="snippetsList" class="saved-snippets">
+      <!-- Snippets will be dynamically inserted here -->
+    </div>
+  </div>
+  <!-- Settings Modal -->
+  <div id="settingsModal" class="settings-modal" style="display:none;">
+    <div class="settings-modal-content">
+      <div class="settings-modal-header">
+        <span>Settings</span>
+        <button id="closeSettings" aria-label="Close settings">&times;</button>
+      </div>
+      <div class="settings-modal-body">
+        <div class="counters-section">
+          <div class="section-header">
+            <h3>Counters</h3>
+            <button id="addCounterBtn" class="add-counter-btn" title="Add new counter">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                <line x1="12" y1="5" x2="12" y2="19"></line>
+                <line x1="5" y1="12" x2="19" y2="12"></line>
+              </svg>
+            </button>
+          </div>
+          <div id="countersList" class="counters-list">
+            <!-- Main counter item -->
+            <div class="counter-item main-counter">
+              <div class="counter-info">
+                <span class="counter-name">Main Counter</span>
+                <div class="counter-actions">
+                  <button class="edit-counter" data-id="main" title="Edit name">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                      <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                    </svg>
+                  </button>
+                  <button class="toggle-counter" data-id="main" title="Hide counter">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                      <circle cx="12" cy="12" r="3"></circle>
+                    </svg>
+                  </button>
+                </div>
+              </div>
+            </div>
+            <!-- Additional counters will be listed here -->
+          </div>
+        </div>
+        <hr>
+        
+
+        
+        <div class="theme-select-container">
+        <label for="themeSelect">Theme:</label>
+        <select id="themeSelect">
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+        </div>
+        <hr>
+        
+        <!-- Data Management Section -->
+        <div class="data-management-section">
+          <h3>Data Management</h3>
+          <div class="data-buttons">
+            <button id="exportDataBtn" class="data-btn export-btn" title="Export all data">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              Export Data
+            </button>
+            <button id="importDataBtn" class="data-btn import-btn" title="Import data">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+              </svg>
+              Import Data
+            </button>
+          </div>
+          <input type="file" id="importFileInput" accept=".json" style="display: none;">
+        </div>
+        <hr>
+        
+        <div class="settings-toggles">
+          <label><input type="checkbox" id="toggleTimestamp" checked> Show Timestamp on Snippet</label><br>
+          <label><input type="checkbox" id="toggleDateFilter"> Show Date Filter</label><br>
+          <label><input type="checkbox" id="toggleTagFilter" checked> Show Tag Filter</label><br>
+          <label><input type="checkbox" id="toggleSearchFilter" checked> Show Search Filter</label><br>
+          <label><input type="checkbox" id="toggleSnippetTags" checked> Show Tags on Snippet</label><br>
+          <label><input type="checkbox" id="toggleDoubleClickEdit" checked> Double Click Snippet to Edit</label>
+        </div>
+        <hr>
+        <!-- Tag Management Section -->
+        <div class="tags-section">
+          <div class="section-header">
+            <h3>Tags</h3>
+          </div>
+          <div id="tagsList" class="tags-list">
+            <!-- Tags will be dynamically added here -->
+          </div>
+          <div class="tag-info-text">
+            <p><small>You can rename tags and activate/deactivate them as needed. Tags that are deactivated won't show in the dropdown menu but will preserve their data.</small></p>
+          </div>
+        </div>
+        <hr>
+                
+      </div>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html> 
