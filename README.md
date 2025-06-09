@@ -2,6 +2,9 @@
 
 A lightweight Chrome extension designed to help users track progress, organize information, and manage snippets efficiently with customizable tags.
 
+## Get Now
+Chrome Web Store- [QuickClip Pro](https://chromewebstore.google.com/detail/ndibnfgbmcfgoeapohknfeeiilgfhdjg?utm_source=item-share-cb)
+
 ## Overview
 
 The **QuickClip Pro Extension** provides an intuitive way to track progress and manage snippets. It includes:
