@@ -1,5 +1,10 @@
 # QuickClip Pro
 
+
+
+<img width="360" height="270" alt="image" src="https://github.com/user-attachments/assets/78e422e6-eb70-4dd0-a99e-a683116782e0" />
+
+
 A lightweight Chrome extension designed to help users track progress, organize information, and manage snippets efficiently with customizable tags.
 
 ## Get Now
