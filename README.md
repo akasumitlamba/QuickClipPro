@@ -4,7 +4,6 @@
 
 ## We Are working on the bug fixes, more bug reports are welcome until update 3.0 goes live Scheduled for 8th August
 
-
 <img width="360" height="270" alt="image" src="https://github.com/user-attachments/assets/78e422e6-eb70-4dd0-a99e-a683116782e0" />
 
 </div>
