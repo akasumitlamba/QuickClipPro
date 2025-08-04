@@ -1,20 +1,26 @@
 {
   "manifest_version": 3,
-  "name": "QuickClip Pro",
-  "version": "1.0",
+  "name": "QuickClip Sidebar",
+  "version": "2.0",
   "description": "A Clipboard Manager for Chromium-based Browsers with Enhanced Features and Customization - TAGS, IMAGES, and MORE!",
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
-    "default_popup": "popup.html",
     "default_icon": {
       "16": "icons/icon16.png",
       "48": "icons/icon48.png",
       "128": "icons/icon128.png"
-    }
+    },
+    "default_title": "Open QuickClip Pro Sidebar"
   },
-  "permissions": ["storage", "clipboardRead", "clipboardWrite"],
+  "side_panel": {
+    "default_path": "popup.html"
+  },
+  "permissions": ["storage", "clipboardRead", "clipboardWrite", "sidePanel"],
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
     "128": "icons/icon128.png"
   }
-} 
+}
