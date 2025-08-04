@@ -1,10 +1,10 @@
 # QuickClip-Pro Privacy Policy
 
-**Last Updated:** June 2025
+**Last Updated:** August 2025
 
 ## Privacy First
 
-QuickClip-Pro is a privacy-focused clipboard manager. We believe in keeping things simple and secure.
+QuickClip-Sidebar aka QuickClip Pro is a privacy-focused clipboard manager. We believe in keeping things simple and secure.
 
 ## Key Points
 
