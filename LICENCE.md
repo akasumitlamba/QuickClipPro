@@ -1,6 +1,6 @@
 MIT License
 
-Non-Commercial License for QuickClip Pro Extension
+Non-Commercial License for QuickClip Sidebar aka QuickClip Pro Extension
 
 Copyright (c) 2025 [akasumitlamba](https://github.com/akasumitlamba)
 
@@ -30,4 +30,4 @@ to the following conditions:
    ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
    DEALINGS IN THE SOFTWARE.
 
-Last updated: May 26, 2025, 10:58 AM IST
+Last updated: August 4th, 2025, 12:11 AM IST
