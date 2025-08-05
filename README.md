@@ -15,9 +15,6 @@ A lightweight Chrome extension designed to help users track progress, organize i
  ](https://microsoftedge.microsoft.com/addons/detail/fdpdihkediefiklboeedbcaeamachnlc)
 - [Chrome![image](https://github.com/user-attachments/assets/5fcac80e-3a0c-43c3-9d92-0582d401be1f)](https://chromewebstore.google.com/detail/ndibnfgbmcfgoeapohknfeeiilgfhdjg?utm_source=item-share-cb)
 
-# Contribution Request
-
-Looking for UI enhancement and extended sidebar support, Contributions are welcome.
 
 ## Overview
 
