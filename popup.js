@@ -425,7 +425,8 @@ document.addEventListener('DOMContentLoaded', function() {
         id: Date.now(),
         text: text || '',
         tag: tag,
-        timestamp: new Date().toLocaleString(),
+        // timestamp: new Date().toLocaleString(),
+        timestamp: new Date().toISOString(), // Use ISO format for consistency
         image: image
       };
           snippets.unshift(newSnippet);
