@@ -2,7 +2,7 @@
 
 <div align="center">
 
-## v2.0 goes live Scheduled for 8th August
+## v2.0 goes live Scheduled for August 2025
 
 <img width="256" height="256" alt="image" src="https://github.com/user-attachments/assets/6aa9edda-6b9d-4651-a4fb-f5ad692fe325" />
 
