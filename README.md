@@ -2,7 +2,10 @@
 
 <div align="center">
 
-## v2.0 goes live Soon 
+## v2.0 goes live Soon
+
+<img width="1920" height="1504" alt="image" src="https://github.com/user-attachments/assets/815aebfe-6b63-4fb6-a412-0872ba30aeec" />
+
 
 </div>
 
