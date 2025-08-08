@@ -4,6 +4,8 @@
 
 ## v2.0 goes live Soon 
 
+</div>
+
 A lightweight Chrome extension designed to help users track progress, organize information, and manage snippets efficiently with customizable tags.
 
 ## Get Now
