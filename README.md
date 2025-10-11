@@ -2,6 +2,8 @@
 
 <div align="center">
 
+
+
 ## v2.0 is available on chrome web store
 
 </div>
