@@ -1,9 +1,8 @@
+<div align="center">
+ 
 # QuickClip Pro
 
-<div align="center">
-
-
-## v2.0 is available on chrome web store
+## For feature request / Bug report [e-mail me](mailto:akasumitlamba@gmail.com)
 
 </div>
 
