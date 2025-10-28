@@ -1,4 +1,7 @@
 <div align="center">
+
+
+
  
 # QuickClip Pro
 
