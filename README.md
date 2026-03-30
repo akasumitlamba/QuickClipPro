@@ -5,7 +5,7 @@
  
 # QuickClip Pro
 
-## For feature request / Bug report [e-mail me](mailto:akasumitlamba@gmail.com)
+V3 Work in progress
 
 </div>
 
