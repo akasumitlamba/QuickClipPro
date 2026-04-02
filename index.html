@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>QuickClip Pro</title>
+  <meta name="description" content="A sidebar clipboard manager for Chromium browsers. Tags, images, counters, search and more.">
+
+  <!-- Page fonts (NOT Inter - that's the extension's font) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
+
+  <!-- Extension CSS - used ONLY inside .ext-frame demo boxes -->
+  <link rel="stylesheet" href="styles.css">
+
+  <style>
+    /* ════════════════════════════════════
+       PAGE DESIGN SYSTEM - scoped to #page
+       Does NOT interfere with .ext-frame
+    ════════════════════════════════════ */
+    :root {
+      --bg:        #0C0C0E;
+      --surface:   #141417;
+      --card:      #1B1B1F;
+      --border:    rgba(255,255,255,0.07);
+      --border2:   rgba(255,255,255,0.13);
+      --text:      #F0EEE8;
+      --text2:     #9A9A9F;
+      --text3:     #4E4E54;
+      --gold:      #D4A847;
+      --gold2:     #EFC96A;
+      --gold-dim:  rgba(212,168,71,0.12);
+      --ease:      cubic-bezier(0.22, 1, 0.36, 1);
+      --ff-d:      'Instrument Serif', Georgia, serif;
+      --ff-u:      'Syne', sans-serif;
+      --ff-m:      'JetBrains Mono', monospace;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+
+    /* Override extension styles.css body rule completely */
+    body {
+      width: auto !important; height: auto !important;
+      overflow: visible !important; overflow-x: hidden !important;
+      font-family: var(--ff-u) !important;
+      font-size: 16px !important;
+      background: var(--bg) !important;
+      color: var(--text) !important;
+      line-height: 1.65 !important;
+    }
+
+    /* grain */
+    body::after {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
+      opacity: 0.03;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* ── NAV ── */
+    #pnav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 900;
+      height: 58px; display: flex; align-items: center;
+      justify-content: space-between;
+      padding: 0 clamp(1.25rem, 4vw, 3.5rem);
+      background: rgba(12,12,14,0.88);
+      backdrop-filter: blur(18px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nl { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+    .nl img { width: 28px; height: 28px; border-radius: 7px; object-fit: contain; }
+    .nl-brand {
+      font-family: var(--ff-u); font-weight: 700; font-size: 1.1rem;
+      color: var(--text); letter-spacing: -0.01em;
+    }
+    .nl-brand em { font-style: normal; color: var(--gold); }
+    .nav-list { display: flex; align-items: center; gap: 2px; list-style: none; }
+    .nav-list a {
+      font-family: var(--ff-m); font-size: 0.7rem; letter-spacing: 0.09em;
+      text-transform: uppercase; color: var(--text2); text-decoration: none;
+      padding: 0.35em 0.75em; border-radius: 4px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .nav-list a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+    .nav-cta {
+      background: var(--gold) !important; color: #000 !important;
+      font-weight: 600; margin-left: 0.4rem;
+    }
+    .nav-cta:hover { background: var(--gold2) !important; transform: translateY(-1px); }
+    #spbar {
+      position: fixed; top: 58px; left: 0; z-index: 899;
+      height: 2px; width: 100%;
+      background: linear-gradient(90deg, var(--gold), #14B8A6);
+      transform-origin: left; transform: scaleX(0);
+    }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; text-align: center;
+      padding: 120px clamp(1.25rem, 6vw, 5rem) 80px;
+      position: relative; z-index: 1; overflow: hidden;
+    }
+    .h-glow {
+      position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 500px; pointer-events: none;
+      background: radial-gradient(ellipse at 50% 0%, rgba(212,168,71,0.11) 0%, transparent 65%);
+    }
+    .h-kicker {
+      font-family: var(--ff-m); font-size: 0.62rem; letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--gold); margin-bottom: 1.4rem;
+      opacity: 0; animation: au 0.8s 0.05s var(--ease) forwards;
+    }
+    .h-h1 {
+      font-family: var(--ff-d); font-size: clamp(3rem, 8.5vw, 7.5rem);
+      font-weight: 400; line-height: 1.04; letter-spacing: -0.025em;
+      color: var(--text);
+      opacity: 0; animation: au 0.9s 0.18s var(--ease) forwards;
+    }
+    .h-h1 em { font-style: italic; color: var(--gold); }
+    .h-sub {
+      font-size: 1.05rem; color: var(--text2); max-width: 480px;
+      margin: 1.4rem auto 0;
+      opacity: 0; animation: au 0.9s 0.34s var(--ease) forwards;
+    }
+    .h-btns {
+      display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center;
+      margin-top: 2.4rem;
+      opacity: 0; animation: au 0.9s 0.48s var(--ease) forwards;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 0.45rem;
+      padding: 0.7em 1.6em; font-family: var(--ff-m);
+      font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase;
+      text-decoration: none; border-radius: 4px; cursor: pointer;
+      border: 1.5px solid transparent; transition: all 0.22s var(--ease);
+    }
+    .btn-gold { background: var(--gold); color: #000; border-color: var(--gold); }
+    .btn-gold:hover { background: var(--gold2); border-color: var(--gold2); transform: translateY(-2px); }
+    .btn-ghost { background: transparent; color: var(--text); border-color: var(--border2); }
+    .btn-ghost:hover { border-color: rgba(255,255,255,0.28); transform: translateY(-2px); }
+    .h-rule {
+      position: absolute; bottom: 0; left: 8%; right: 8%;
+      height: 1px; background: linear-gradient(90deg, transparent, var(--border2), transparent);
+    }
+
+    /* ── MARQUEE ── */
+    .mqwrap {
+      overflow: hidden; border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      background: var(--surface); padding: 0.55rem 0;
+      position: relative; z-index: 1;
+    }
+    .mqtrack {
+      display: flex; width: max-content;
+      animation: mqs 28s linear infinite;
+    }
+    .mqtrack:hover { animation-play-state: paused; }
+    .mqitem {
+      font-family: var(--ff-m); font-size: 0.75rem;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--text3); padding: 0 2.5rem; white-space: nowrap;
+    }
+    .mqitem b { color: var(--gold); font-weight: 400; margin-right: 2.5rem; }
+    @keyframes mqs {
+      from { transform: translateX(0); }
+      to   { transform: translateX(-50%); }
+    }
+
+    /* ── SHARED SECTION LAYOUT ── */
+    .psec { position: relative; z-index: 1; }
+    .pin {
+      max-width: 1120px; margin: 0 auto;
+      padding: 6rem clamp(1.25rem, 5vw, 4rem);
+    }
+    .eyebrow {
+      font-family: var(--ff-m); font-size: 0.58rem; letter-spacing: 0.22em;
+      text-transform: uppercase; color: var(--gold); margin-bottom: 0.8rem;
+    }
+    .stitle {
+      font-family: var(--ff-d); font-size: clamp(2rem, 4.5vw, 3.4rem);
+      font-weight: 400; line-height: 1.1; letter-spacing: -0.02em; color: var(--text);
+    }
+    .stitle em { font-style: italic; color: var(--gold); }
+    .slead { font-size: 0.92rem; color: var(--text2); margin-top: 0.65rem; max-width: 480px; }
+
+    /* ── PRODUCTS ── */
+    #products { background: var(--bg); }
+    .prod-header {
+      display: flex; align-items: flex-end; justify-content: space-between;
+      flex-wrap: wrap; gap: 1rem; margin-bottom: 3rem;
+    }
+    .pgrid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+    }
+    .pcard {
+      flex: 1 1 45%;
+      min-width: 250px;
+      max-width: 100%;
+      box-sizing: border-box;
+      margin: 0;
+    }
+    @media (max-width: 860px) {
+      .pcard {
+        flex-basis: 100%;
+      }
+    }
+    .pcard {
+      background: var(--surface); padding: 1.85rem 1.65rem;
+      text-decoration: none; display: flex; flex-direction: column;
+      position: relative; overflow: hidden;
+      transition: background 0.25s var(--ease);
+    }
+    .pcard:hover { background: var(--card); }
+    .pcard::before {
+      content: ''; position: absolute; inset: 0; opacity: 0;
+      background: radial-gradient(circle at 25% 25%, var(--pg, rgba(212,168,71,0.08)), transparent 60%);
+      transition: opacity 0.3s;
+    }
+    .pcard:hover::before { opacity: 1; }
+    .pcard-badge {
+      position: absolute; top: 1.1rem; right: 1.1rem;
+      font-family: var(--ff-m); font-size: 0.53rem; letter-spacing: 0.1em;
+      text-transform: uppercase; background: var(--gold-dim); color: var(--gold);
+      padding: 0.2em 0.6em; border-radius: 3px; border: 1px solid rgba(212,168,71,0.18);
+    }
+    .pcard-img {
+      width: 46px; height: 46px; border-radius: 11px; overflow: hidden;
+      border: 1px solid var(--border2); background: var(--card);
+      display: flex; align-items: center; justify-content: center;
+      margin-bottom: 1.1rem; flex-shrink: 0;
+    }
+    .pcard-img img { width: 34px; height: 34px; object-fit: contain; }
+    .pcard-name {
+      font-family: var(--ff-u); font-weight: 700; font-size: 1.05rem;
+      color: var(--text); letter-spacing: -0.01em; margin-bottom: 0.28rem;
+    }
+    .pcard-tag {
+      font-family: var(--ff-m); font-size: 0.55rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text3); margin-bottom: 0.65rem;
+    }
+    .pcard-desc { font-size: 0.85rem; color: var(--text2); line-height: 1.6; flex: 1; }
+    .pcard-arrow {
+      display: flex; align-items: center; gap: 0.4rem; margin-top: 1.4rem;
+      font-family: var(--ff-m); font-size: 0.58rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text3);
+      transition: color 0.2s, gap 0.2s;
+    }
+    .pcard:hover .pcard-arrow { color: var(--gold); gap: 0.65rem; }
+
+    /* ── DEMOS ── */
+    #demos { background: var(--surface); }
+    .dgrid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 3.5rem; margin-top: 3.5rem;
+    }
+    .dblock { opacity: 0; transform: translateY(26px); transition: opacity 0.65s var(--ease), transform 0.65s var(--ease); }
+    .dblock.vis { opacity: 1; transform: none; }
+    .dlabel {
+      font-family: var(--ff-m); font-size: 0.55rem; letter-spacing: 0.18em;
+      text-transform: uppercase; color: var(--text3); margin-bottom: 0.55rem;
+      display: flex; align-items: center; gap: 0.45rem;
+    }
+    .dlabel::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--gold); flex-shrink:0; }
+    .dtitle { font-family: var(--ff-d); font-size: 1.45rem; color: var(--text); margin-bottom: 0.35rem; }
+    .ddesc { font-size: 0.82rem; color: var(--text2); line-height: 1.55; margin-bottom: 1.2rem; }
+
+    /* browser chrome frame */
+    .eframe {
+      border-radius: 11px; border: 1px solid var(--border2); overflow: hidden;
+      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+    }
+    .echrome {
+      background: #18181b; padding: 8px 12px;
+      display: flex; align-items: center; gap: 6px;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    .edot { width: 9px; height: 9px; border-radius: 50%; }
+    .etitle {
+      font-family: var(--ff-m); font-size: 0.58rem;
+      color: rgba(255,255,255,0.25); margin-left: 8px; letter-spacing: 0.07em;
+    }
+    /* inner body where extension CSS applies */
+    .ebody {
+      padding: 8px; max-height: 340px; overflow: hidden;
+      background: var(--color-background, #F5F6F8);
+    }
+    .ebody-dark { background: #0F1117; }
+
+    /* GIF container styling */
+    .gif-container {
+      position: relative;
+      width: 100%;
+      max-width: 400px;
+      margin: 0 auto;
+      border-radius: 12px;
+      overflow: hidden;
+      background: var(--card);
+      border: 1px solid var(--border);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .demo-gif {
+      width: 100%;
+      height: auto;
+      max-height: 300px;
+      object-fit: contain;
+      display: block;
+      border-radius: 11px;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      .demo-gif {
+        max-height: 250px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .demo-gif {
+        max-height: 200px;
+      }
+    }
+
+    /* override container so it doesn't fill 100vh inside demo */
+    .ebody .container {
+      height: auto !important; overflow: visible !important; display: block !important;
+    }
+
+    /* ── GUIDE ── */
+    #guide { background: var(--bg); }
+    .ggrid {
+      display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+      gap: 1.25rem; margin-top: 3rem;
+    }
+    .gcard {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 10px; padding: 1.65rem; position: relative; overflow: hidden;
+      opacity: 0; transform: translateY(22px);
+      transition: opacity 0.6s var(--ease), transform 0.6s var(--ease),
+                  border-color 0.2s, background 0.2s;
+    }
+    .gcard.vis { opacity: 1; transform: none; }
+    .gcard:hover { border-color: var(--border2); background: var(--card); }
+    /* step number - high contrast warm white */
+    .gnum {
+      font-family: var(--ff-d); font-style: italic;
+      font-size: 5rem; line-height: 1; color: rgba(240,238,232,0.13);
+      position: absolute; top: 0.4rem; right: 0.9rem;
+      pointer-events: none; user-select: none;
+    }
+    .gtitle {
+      font-family: var(--ff-u); font-weight: 600; font-size: 0.9rem;
+      color: var(--text); margin-bottom: 0.5rem;
+      display: flex; align-items: center; gap: 0.55rem;
+    }
+    .gtitle svg { color: var(--gold); flex-shrink: 0; }
+    .gbody { font-size: 0.83rem; color: var(--text2); line-height: 1.65; }
+    .gtip {
+      display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.85rem;
+      font-family: var(--ff-m); font-size: 0.58rem; letter-spacing: 0.09em;
+      text-transform: uppercase; background: var(--gold-dim); color: var(--gold);
+      padding: 0.28em 0.65em; border-radius: 3px;
+    }
+
+    /* ── LEGAL ── */
+    #legal { background: var(--surface); }
+    .lgrid {
+      display: grid; grid-template-columns: 1fr 1fr;
+      gap: 2.5rem; margin-top: 3rem;
+    }
+    .lblock {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 10px; padding: 2rem;
+    }
+    .ltitle {
+      font-family: var(--ff-d); font-size: 1.55rem; color: var(--text);
+      margin-bottom: 1.4rem; padding-bottom: 0.9rem;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; gap: 0.55rem;
+    }
+    .ltitle svg { color: var(--gold); flex-shrink: 0; }
+    .lpoint { display: flex; gap: 0.7rem; margin-bottom: 1rem; }
+    .ldot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex-shrink: 0; margin-top: 0.6rem; }
+    .ltext { font-size: 0.86rem; color: var(--text2); line-height: 1.65; }
+    .ltext strong { color: var(--text); font-weight: 500; }
+    .ltext code {
+      font-family: var(--ff-m); font-size: 0.77em;
+      background: rgba(255,255,255,0.06); padding: 0.1em 0.35em; border-radius: 3px;
+    }
+    .lmono {
+      font-family: var(--ff-m); font-size: 0.72rem;
+      line-height: 1.82; color: var(--text3);
+      white-space: pre-wrap; word-break: break-word;
+    }
+    .lmono strong { color: var(--text2); font-weight: 500; }
+    .llink {
+      display: inline-flex; align-items: center; gap: 0.4rem; width: 100%;
+      font-family: var(--ff-m); font-size: 0.58rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--gold); text-decoration: none;
+      margin-top: 1.4rem; padding-top: 1.2rem; border-top: 1px solid var(--border);
+      transition: gap 0.2s;
+    }
+    .llink:hover { gap: 0.65rem; }
+
+    /* ── FOOTER ── */
+    #pfooter {
+      background: var(--bg); border-top: 1px solid var(--border);
+      padding: 2.2rem clamp(1.25rem, 5vw, 4rem);
+      position: relative; z-index: 1;
+    }
+    .finner {
+      max-width: 1120px; margin: 0 auto;
+      display: flex; align-items: center; justify-content: space-between;
+      flex-wrap: wrap; gap: 1.1rem;
+    }
+    .flogo { display: flex; align-items: center; gap: 7px; text-decoration: none; }
+    .flogo img { width: 24px; height: 24px; border-radius: 6px; }
+    .flogo span { font-family: var(--ff-u); font-weight: 700; font-size: 0.9rem; color: var(--text); }
+    .flogo span em { font-style: normal; color: var(--gold); }
+    .flinks { display: flex; gap: 2px; list-style: none; flex-wrap: wrap; }
+    .flinks a {
+      font-family: var(--ff-m); font-size: 0.58rem; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--text3); text-decoration: none;
+      padding: 0.3em 0.65em; border-radius: 3px;
+      transition: color 0.2s, background 0.2s;
+    }
+    .flinks a:hover { color: var(--gold); background: var(--gold-dim); }
+    .fcopy { font-family: var(--ff-m); font-size: 0.56rem; letter-spacing: 0.07em; color: var(--text3); }
+
+    /* ── ANIMATIONS ── */
+    @keyframes au {
+      from { opacity: 0; transform: translateY(20px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .rev { opacity: 0; transform: translateY(20px); transition: opacity 0.65s var(--ease), transform 0.65s var(--ease); }
+    .rev.vis { opacity: 1; transform: none; }
+
+    /* ── RESPONSIVE ── */
+    @media (max-width: 860px) {
+      .dgrid { grid-template-columns: 1fr; }
+      .lgrid { grid-template-columns: 1fr; }
+    }
+    @media (max-width: 640px) {
+      .nav-list li:not(:last-child):not(:nth-last-child(2)) { display: none; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav id="pnav">
+  <a href="#hero" class="nl">
+    <img src="icons/quickclippro.png" alt="QuickClip Pro" onerror="this.style.display='none'">
+    <span class="nl-brand">QuickClip <em>Pro</em></span>
+  </a>
+  <ul class="nav-list">
+    <li><a href="#products">Products</a></li>
+    <li><a href="#demos">Demo</a></li>
+    <li><a href="#guide">Guide</a></li>
+    <li><a href="#legal">Legal</a></li>
+    <li><a href="https://github.com/akasumitlamba/QuickClipPro" target="_blank" rel="noopener">GitHub</a></li>
+    <li><a href="https://chromewebstore.google.com/detail/ndibnfgbmcfgoeapohknfeeiilgfhdjg" target="_blank" rel="noopener" class="nav-cta">Install Free ↗</a></li>
+  </ul>
+</nav>
+<div id="spbar"></div>
+
+<!-- ══ HERO ══ -->
+<section id="hero" class="psec">
+  <div class="h-glow"></div>
+  <p class="h-kicker">v2.0 · Chromium Sidebar Extension</p>
+  <h1 class="h-h1">Thank you for installing<br><em>QuickClip Pro</em></h1>
+  <p class="h-sub">Your clipboard just became a command centre. Snippets, counters, tags, images - all in a persistent sidebar.</p>
+  <div class="h-btns">
+    <a href="#products" class="btn btn-gold">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
+      Explore More Products
+    </a>
+    <button onclick="shareExtension(this)" class="btn btn-ghost">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16,6 12,2 8,6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      Share with Friends
+    </button>
+    <a href="#guide" class="btn btn-ghost">How to Use →</a>
+  </div>
+  <div class="h-rule"></div>
+</section>
+
+<!-- MARQUEE -->
+<div class="mqwrap" aria-hidden="true">
+  <div class="mqtrack">
+    <span class="mqitem"><b>◆</b> Snippet Manager</span><span class="mqitem"><b>◆</b> Custom Tags</span>
+    <span class="mqitem"><b>◆</b> Image Support</span><span class="mqitem"><b>◆</b> Mini Counters</span>
+    <span class="mqitem"><b>◆</b> Search &amp; Filter</span><span class="mqitem"><b>◆</b> Dark &amp; Light Mode</span>
+    <span class="mqitem"><b>◆</b> Export / Import JSON</span><span class="mqitem"><b>◆</b> Auto Link Detection</span>
+    <span class="mqitem"><b>◆</b> 100% Local &amp; Private</span><span class="mqitem"><b>◆</b> Open Source</span>
+    <span class="mqitem"><b>◆</b> Snippet Manager</span><span class="mqitem"><b>◆</b> Custom Tags</span>
+    <span class="mqitem"><b>◆</b> Image Support</span><span class="mqitem"><b>◆</b> Mini Counters</span>
+    <span class="mqitem"><b>◆</b> Search &amp; Filter</span><span class="mqitem"><b>◆</b> Dark &amp; Light Mode</span>
+    <span class="mqitem"><b>◆</b> Export / Import JSON</span><span class="mqitem"><b>◆</b> Auto Link Detection</span>
+    <span class="mqitem"><b>◆</b> 100% Local &amp; Private</span><span class="mqitem"><b>◆</b> Open Source</span>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+     OTHER PRODUCTS (first real content section)
+══════════════════════════ -->
+<section id="products" class="psec">
+  <div class="pin">
+
+    <div class="prod-header rev">
+      <div>
+        <p class="eyebrow">By akasumitlamba</p>
+        <h2 class="stitle">More tools you<br>might love</h2>
+        <p class="slead">Same philosophy across every product - focused, private, no bloat, no subscriptions.</p>
+      </div>
+      <a href="https://github.com/akasumitlamba" target="_blank" rel="noopener" class="btn btn-ghost" style="align-self:flex-end;">
+        All Projects on GitHub →
+      </a>
+    </div>
+
+    <div class="pgrid rev">
+
+      <!-- QuickClip (basic) -->
+      <a href="https://chromewebstore.google.com/detail/mjdfflpebcmmpipdeeianpjfolmhkmna"
+         target="_blank" rel="noopener" class="pcard" style="--pg:rgba(99,102,241,0.09);">
+        <div class="pcard-img">
+          <img src="icons/quickclip.png" alt="QuickClip" onerror="this.outerHTML='<span style=font-size:1.4rem>📋</span>'">
+        </div>
+        <div class="pcard-name">QuickClip</div>
+        <div class="pcard-tag">Browser Extension · Chrome</div>
+        <div class="pcard-desc">The original, lightweight clipboard companion. Manage text and links without the full sidebar setup - a simpler, everyday clipping tool.</div>
+        <div class="pcard-arrow">Open in Chrome Store <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </a>
+
+      <!-- QuickClip Pro - current -->
+      <a href="https://chromewebstore.google.com/detail/ndibnfgbmcfgoeapohknfeeiilgfhdjg"
+         target="_blank" rel="noopener" class="pcard" style="--pg:rgba(212,168,71,0.1); background:var(--card);">
+        <span class="pcard-badge">You have this ✓</span>
+        <div class="pcard-img">
+          <img src="icons/quickclippro.png" alt="QuickClip Pro" onerror="this.outerHTML='<span style=font-size:1.4rem>⚡</span>'">
+        </div>
+        <div class="pcard-name">QuickClip Pro</div>
+        <div class="pcard-tag">Browser Extension · Chrome &amp; Edge</div>
+        <div class="pcard-desc">The full-featured sidebar clipboard manager - tags, images, mini-counters, dark mode, search &amp; filter, full customisation. Currently installed.</div>
+        <div class="pcard-arrow">Rate it on the Store ↗ <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </a>
+
+      <!-- WWRecorder -->
+      <a href="https://akasumitlamba.github.io/WWRecorder/"
+         target="_blank" rel="noopener" class="pcard" style="--pg:rgba(244,63,94,0.09);">
+        <div class="pcard-img">
+          <img src="icons/wwrecorder.png" alt="WWRecorder" onerror="this.outerHTML='<span style=font-size:1.4rem>🎥</span>'">
+        </div>
+        <div class="pcard-name">WWRecorder</div>
+        <div class="pcard-tag">Windows App</div>
+        <div class="pcard-desc">A lightweight, high-performance screen recorder for Windows. Capture your screen cleanly without the overhead of bulky recording software.</div>
+        <div class="pcard-arrow">Learn More <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </a>
+
+      <!-- Stype -->
+      <a href="https://akasumitlamba.github.io/Stype/"
+         target="_blank" rel="noopener" class="pcard" style="--pg:rgba(245,158,11,0.09);">
+        <div class="pcard-img">
+          <img src="icons/stype.png" alt="Stype" onerror="this.outerHTML='<span style=font-size:1.4rem>🎙️</span>'">
+        </div>
+        <div class="pcard-name">Stype</div>
+        <div class="pcard-tag">AI Speech-to-Text Tool</div>
+        <div class="pcard-desc">AI-powered speech-to-text that correctly handles punctuation and capitalisation. Just speak - it types perfectly formatted prose for you.</div>
+        <div class="pcard-arrow">Learn More <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </a>
+
+      <!-- Keycast -->
+      <a href="https://github.com/akasumitlamba/KeyCast"
+         target="_blank" rel="noopener" class="pcard" style="--pg:rgba(14,165,233,0.09);">
+        <div class="pcard-img">
+          <img src="icons/keycast.png" alt="Keycast" onerror="this.outerHTML='<span style=font-size:1.4rem>⌨️</span>'">
+        </div>
+        <div class="pcard-name">Keycast</div>
+        <div class="pcard-tag">Windows App · GitHub</div>
+        <div class="pcard-desc">Show keyboard and mouse inputs live on screen. Built for screen recorders, tutorial creators, and live streamers who need keystroke overlays.</div>
+        <div class="pcard-arrow">View on GitHub <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+      </a>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════
+     DEMO GIFS
+══════════════════════════ -->
+<section id="demos" class="psec">
+  <div class="pin">
+    <p class="eyebrow rev">Demo GIFs</p>
+    <h2 class="stitle rev">See it in action</h2>
+    <p class="slead rev">Watch QuickClip Pro in action - these animated demonstrations show the key features and workflows.</p>
+
+    <div class="dgrid">
+
+      <!-- DEMO 1 - Saving Snippets -->
+      <div class="dblock">
+        <div class="dlabel">Saving Snippets</div>
+        <div class="dtitle">Save &amp; tag your clips</div>
+        <div class="ddesc">Type anything, pick a tag, hit Save - or use Paste to clipboard-read and save in one tap. The counter tracks repeated tasks.</div>
+        <div class="gif-container">
+          <img src="icons/demo-saving-snippets.gif" alt="Saving snippets with tags and counter" class="demo-gif">
+        </div>
+      </div>
+
+      <!-- DEMO 2 - Search & Filters -->
+      <div class="dblock">
+        <div class="dlabel">Search & Filters</div>
+        <div class="dtitle">Search, date &amp; tag filters</div>
+        <div class="ddesc">All three filters work together in real time. Type in search, pick a calendar date, or narrow by tag - instant results, no reloads.</div>
+        <div class="gif-container">
+          <img src="icons/demo-search-filters.gif" alt="Using search and filter features" class="demo-gif">
+        </div>
+      </div>
+
+      <!-- DEMO 3 - Settings Panel -->
+      <div class="dblock">
+        <div class="dlabel">Settings Panel</div>
+        <div class="dtitle">Customise everything</div>
+        <div class="ddesc">Toggle display options, add counters, manage tags, switch themes, and back up your data - all from the ⚙️ gear icon in the header.</div>
+        <div class="gif-container">
+          <img src="icons/demo-settings-panel.gif" alt="Settings panel customization" class="demo-gif">
+        </div>
+      </div>
+
+      <!-- DEMO 4 - Managing Snippets -->
+      <div class="dblock">
+        <div class="dlabel">Managing Snippets</div>
+        <div class="dtitle">Tags, copy &amp; delete</div>
+        <div class="ddesc">Every snippet shows its status tag, timestamp, copy and delete buttons. Double-click to edit inline. Links auto-detect and become clickable.</div>
+        <div class="gif-container">
+          <img src="icons/demo-managing-snippets.gif" alt="Managing snippets with copy and delete actions" class="demo-gif">
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════
+     HOW TO USE
+══════════════════════════ -->
+<section id="guide" class="psec">
+  <div class="pin">
+    <p class="eyebrow rev">How to Use</p>
+    <h2 class="stitle rev">Nine steps to<br><em>clipboard mastery</em></h2>
+
+    <div class="ggrid">
+
+      <div class="gcard">
+        <div class="gnum">01</div>
+        <div class="gtitle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          Install &amp; Pin
+        </div>
+        <div class="gbody">After installing from the Chrome or Edge store, click the puzzle-piece icon, find <strong>QuickClip Pro</strong> and pin it. Click the pinned icon to open the sidebar - it stays open while you browse without interrupting your tabs.</div>
+        <div class="gtip">Toolbar → Pin → Click to Open</div>
+      </div>
+
+      <div class="gcard">
+        <div class="gnum">02</div>
+        <div class="gtitle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
+          Save a Snippet
+        </div>
+        <div class="gbody">Type or paste any text, URL, or image into the input area. Select a status tag from the dropdown, then hit <strong>Save</strong>. Use <strong>Paste</strong> to clipboard-read and save in one tap. Links auto-detect and become clickable.</div>
+        <div class="gtip">Type → Tag → Save OR Paste & Save</div>
+      </div>
+
+      <div class="gcard">
+        <div class="gnum">03</div>
+        <div class="gtitle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+          Manage Snippets
+        </div>
+        <div class="gbody">Click <strong>📋</strong> to copy a snippet instantly. Click <strong>🗑️</strong> to delete it. To edit, <strong>double-click</strong> the snippet text, make changes, then click outside - saves automatically with no extra steps.</div>
+        <div class="gtip">Double-click to Edit · Click outside to Save</div>
+      </div>
+
+      <div class="gcard">
+        <div class="gnum">04</div>
+        <div class="gtitle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          Execution Counter
+        </div>
+        <div class="gbody">The <strong>Execution Count</strong> in the header tracks repeated tasks. Hit <strong>+</strong> to increment, <strong>−</strong> to decrement, the reset icon to return to zero. Create multiple independent mini-counters in Settings for different tasks.</div>
+        <div class="gtip">+ / − / ↺ Reset · Mini-Counters in Settings</div>
+      </div>
+
+      <div class="gcard">
+        <div class="gnum">05</div>
+        <div class="gtitle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          Search &amp; Filter
+        </div>
+        <div class="gbody">Use the <strong>search bar</strong> to find by content, the <strong>calendar picker</strong> to filter by date, or the <strong>tag dropdown</strong> to narrow by status. All three filters work simultaneously in real time - instant results.</div>
+        <div class="gtip">Search · Date · Tag - all real-time</div>
+      </div>
+
+      <div class="gcard">
+        <div class="gnum">06</div>
+        <div class="gtitle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58z"/></svg>
+          Settings
+        </div>
+        <div class="gbody">Click the <strong>⚙️ gear icon</strong> in the header. Add/rename/hide mini-counters, create custom tags, toggle light/dark/system theme, show or hide individual UI elements, and configure double-click edit behaviour.</div>
+        <div class="gtip">⚙️ → Counters · Tags · Theme · Display</div>
+      </div>
+
+      <div class="gcard">
+        <div class="gnum">07</div>
+        <div class="gtitle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Add Images
+        </div>
+        <div class="gbody">Click the <strong>📷 camera icon</strong> in the input area to upload an image. It is stored locally alongside your text content - great for UI mockups, screenshots, or any visual reference you need close at hand.</div>
+        <div class="gtip">📷 Camera → Upload → Save</div>
+      </div>
+
+      <div class="gcard">
+        <div class="gnum">08</div>
+        <div class="gtitle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29"/></svg>
+          Export &amp; Import
+        </div>
+        <div class="gbody">In <strong>Settings → Data Management</strong>, click <strong>Export Data</strong> to download a JSON backup of all snippets, counters and settings. Click <strong>Import Data</strong> to restore. <em>Always export before importing</em> - import overwrites current data.</div>
+        <div class="gtip">⚙️ → Data → Export / Import JSON</div>
+      </div>
+
+      <div class="gcard">
+        <div class="gnum">09</div>
+        <div class="gtitle">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          Custom Tags
+        </div>
+        <div class="gbody">Create up to <strong>8 custom tags</strong> with different colors for organization. In <strong>Settings → Tags</strong>, rename any tag, choose from multiple color options, and assign them to snippets. Perfect for categorizing by project, priority, or workflow stage.</div>
+        <div class="gtip">⚙️ → Tags → Rename & Color (8 available)</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════
+     PRIVACY & LICENSE
+══════════════════════════ -->
+<section id="legal" class="psec">
+  <div class="pin">
+    <p class="eyebrow rev">Legal</p>
+    <h2 class="stitle rev">Privacy &amp; <em>License</em></h2>
+    <p class="slead rev">Complete, unabridged. No legalese for its own sake.</p>
+
+    <div class="lgrid">
+
+      <!-- PRIVACY -->
+      <div class="lblock rev">
+        <div class="ltitle">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          Privacy Policy
+        </div>
+
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Zero Data Collection.</strong> QuickClip Pro does not collect any data whatsoever. There are no servers, no accounts, no analytics pipelines, and no telemetry of any description. Nothing you type, save, paste, or do inside the extension is ever transmitted anywhere outside of your own device.</div></div>
+
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Local Storage Only.</strong> All snippets, counters, tags, and settings are stored exclusively in your browser's <code>chrome.storage.local</code> API. This is a browser-managed, device-local storage - the developer has no access to it under any circumstances. Your data never leaves your machine.</div></div>
+
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>No Tracking or Monitoring.</strong> There are no usage statistics, no event logging, no crash reporting, no heatmaps, no user session recordings, and no third-party analytics SDKs included in any form. Not even page-view counts.</div></div>
+
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Permissions Explained.</strong> The extension requests only what it needs: <code>storage</code> to save data locally; <code>clipboardRead</code> &amp; <code>clipboardWrite</code> for the Paste and Copy operations; <code>sidePanel</code> to render the sidebar UI. No <code>tabs</code>, no host permissions, no browsing history access.</div></div>
+
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Open Source Verification.</strong> The extension is fully open source. The entire codebase is available on GitHub for independent inspection. There is no obfuscation. Anyone can verify that no data leaves the device by reading the source.</div></div>
+
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Data Persistence &amp; Loss.</strong> Data persists between browser sessions as long as your browser profile is intact. Clearing browser data, uninstalling the extension, or resetting your Chrome/Edge profile will permanently erase locally stored data. Export regularly via <em>Settings → Data Management → Export</em> to prevent data loss.</div></div>
+
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Children's Privacy.</strong> The extension does not knowingly collect any personal information from children under 13 or under any applicable age of digital consent. The extension collects no personal information from any user.</div></div>
+
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Policy Updates.</strong> This privacy policy may be updated when the extension updates. Changes are communicated via the GitHub repository changelog. Continued use of the extension following notification of changes constitutes acceptance of the revised policy.</div></div>
+
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Contact.</strong> Questions about this privacy policy? Email <a href="mailto:akasumitlamba@gmail.com" style="color:var(--gold);text-decoration:none;">akasumitlamba@gmail.com</a>. Last updated: August 2026.</div></div>
+
+        <a href="https://github.com/akasumitlamba/QuickClipPro/blob/main/PRIVACY.md" target="_blank" rel="noopener" class="llink">
+          View on GitHub ↗
+        </a>
+      </div>
+
+      <!-- LICENSE -->
+      <div class="lblock rev">
+        <div class="ltitle">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+          License
+        </div>
+        <div class="lmono"><strong>MIT Non-Commercial License
+QuickClip Sidebar aka QuickClip Pro Extension</strong>
+
+Copyright (c) 2026 akasumitlamba
+https://github.com/akasumitlamba
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation
+files (the "Software"), to use, modify, and redistribute the
+Software for non-commercial purposes only, subject to the
+following conditions:
+
+<strong>1. NON-COMMERCIAL USE</strong>
+   The Software may not be used for any commercial purpose,
+   including but not limited to selling, licensing, or
+   distributing the Software or any derivative works for
+   profit or as part of a commercial product or service.
+   This includes charging users to access it, using it in a
+   paid SaaS offering, or bundling it into commercial
+   software distributions.
+
+<strong>2. PROHIBITION ON SIMILAR COPIES FOR PUBLIC USE</strong>
+   You may not create similar copies, derivative works, or
+   adaptations of the Software and make them available for
+   public use on any platform - including browser extension
+   stores (Chrome Web Store, Edge Add-ons, Firefox Add-ons),
+   app stores, or any distribution channel - whether free
+   or paid - without written permission from the author.
+
+<strong>3. ATTRIBUTION</strong>
+   The above copyright notice and this permission notice
+   shall be included in all copies or substantial portions
+   of the Software. Appropriate credit must be given to the
+   original author (akasumitlamba) in any work that uses or
+   derives from this Software.
+
+<strong>4. MODIFICATION</strong>
+   You are free to modify the Software for personal, private,
+   or non-commercial internal use. Modified versions may not
+   be publicly distributed without written permission from
+   the original author.
+
+<strong>5. NO WARRANTY</strong>
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
+   ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
+   TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
+   PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT
+   SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+   OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
+   IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+<strong>6. TERMINATION</strong>
+   Any breach of the conditions above automatically
+   terminates your rights under this license. The copyright
+   holder reserves the right to pursue legal remedies for
+   any violations.
+
+Last updated: August 4th, 2026, 12:11 AM IST</div>
+
+        <a href="https://github.com/akasumitlamba/QuickClipPro/blob/main/LICENCE.md" target="_blank" rel="noopener" class="llink">
+          View on GitHub ↗
+        </a>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer id="pfooter">
+  <div class="finner">
+    <a href="#hero" class="flogo">
+      <img src="icons/quickclippro.png" alt="QuickClip Pro" onerror="this.style.display='none'">
+      <span>QuickClip <em>Pro</em></span>
+    </a>
+    <ul class="flinks">
+      <li><a href="#products">Products</a></li>
+      <li><a href="#demos">Demo</a></li>
+      <li><a href="#guide">Guide</a></li>
+      <li><a href="#legal">Legal</a></li>
+      <li><a href="https://github.com/akasumitlamba" target="_blank" rel="noopener">GitHub</a></li>
+      <li><a href="https://www.linkedin.com/in/akasumitlamba/" target="_blank" rel="noopener">LinkedIn</a></li>
+      <li><a href="mailto:akasumitlamba@gmail.com">Contact</a></li>
+    </ul>
+    <span class="fcopy">© 2026 akasumitlamba · MIT Non-Commercial License</span>
+  </div>
+</footer>
+
+<script>
+// ── scroll progress
+const spbar = document.getElementById('spbar');
+window.addEventListener('scroll', () => {
+  spbar.style.transform = `scaleX(${Math.min(window.scrollY / (document.body.scrollHeight - innerHeight), 1)})`;
+}, { passive: true });
+
+// ── IntersectionObserver - .rev, .dblock, .gcard
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (!e.isIntersecting) return;
+    const siblings = [...e.target.parentElement.children];
+    e.target.style.transitionDelay = (siblings.indexOf(e.target) % 4) * 75 + 'ms';
+    e.target.classList.add('vis');
+    io.unobserve(e.target);
+  });
+}, { threshold: 0.08, rootMargin: '0px 0px -36px 0px' });
+
+document.querySelectorAll('.rev, .dblock, .gcard').forEach(el => io.observe(el));
+
+// ── demo snippet data
+const DS = [
+  { text: 'https://github.com/akasumitlamba/QuickClipPro',   tag: 'created',  tc: '#10B981', tb: '#ECFDF5', tbd: '#0A2E1F' },
+  { text: 'Review PR #42 before 5pm - check Figma for spec', tag: 'note',     tc: '#F59E0B', tb: '#FFFBEB', tbd: '#2E2610' },
+  { text: 'SELECT * FROM users WHERE active = 1 LIMIT 50;',  tag: 'reopened', tc: '#6366F1', tb: '#EEF2FF', tbd: '#1A1D3A' },
+  { text: 'npm run build && npm run deploy:prod',             tag: 'teal',     tc: '#14B8A6', tb: '#F0FDFA', tbd: '#0A2E2A' },
+  { text: 'API key: sk-xxxxxxxxxxxxxxxxxxx (rotate weekly)',  tag: 'closed',   tc: '#EF4444', tb: '#FEF2F2', tbd: '#2E1215' },
+];
+
+function mkCard(s, dark) {
+  const bg   = dark ? '#1A1D27' : '#FFFFFF';
+  const bord = dark ? '#2E3344' : '#E2E5EA';
+  const txt  = dark ? '#E8EAF0' : '#1A1D23';
+  const sub  = dark ? '#8B93A7' : '#6B7280';
+  const hov  = dark ? '#2A2F3F' : '#F0F1F4';
+  const tBg  = dark ? s.tbd     : s.tb;
+  const body = s.text.replace(/(https?:\/\/[^\s]+)/g,
+    `<a href="$1" target="_blank" rel="noopener" style="color:#6366F1;word-break:break-all;text-decoration:underline;">$1</a>`);
+  const min  = String(Math.floor(Math.random()*60)).padStart(2,'0');
+  return `<div data-txt="${s.text.replace(/"/g,'&quot;')}" style="background:${bg};border:1px solid ${bord};border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;transition:background 0.15s;" onmouseover="this.style.background='${hov}'" onmouseout="this.style.background='${bg}'">
+    <div style="font-size:11.5px;color:${txt};line-height:1.5;">${body}</div>
+    <div style="display:flex;align-items:center;gap:5px;">
+      <span style="font-size:9px;font-weight:600;color:${s.tc};background:${tBg};padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:0.06em;">${s.tag}</span>
+      <span style="font-size:9px;color:${sub};margin-left:auto;">Today, 14:${min}</span>
+      <button title="Copy" onclick="var b=this;navigator.clipboard.writeText(this.closest('[data-txt]').dataset.txt).then(()=>{b.textContent='✓';setTimeout(()=>b.textContent='📋',1300)})" style="background:none;border:none;cursor:pointer;font-size:12px;padding:1px 3px;">📋</button>
+      <button title="Delete" onclick="this.closest('[data-txt]').remove()" style="background:none;border:none;cursor:pointer;font-size:12px;padding:1px 3px;">🗑️</button>
+    </div>
+  </div>`;
+}
+
+// populate all demo lists
+const dl1 = document.getElementById('dl1');
+const dl2 = document.getElementById('dl2');
+const dl3 = document.getElementById('dl3');
+DS.slice(0,3).forEach(s => dl1.insertAdjacentHTML('beforeend', mkCard(s, false)));
+DS.forEach(s => dl2.insertAdjacentHTML('beforeend', mkCard(s, false)));
+DS.forEach(s => dl3.insertAdjacentHTML('beforeend', mkCard(s, true)));
+
+// save in demo 1
+function demoSave(taId, listId, dark) {
+  const ta = document.getElementById(taId);
+  const t = ta.value.trim(); if (!t) return;
+  const tags = ['created','note','reopened','teal'];
+  const s = DS[0]; // reuse colors
+  const card = mkCard({ text: t, tag: 'created', tc: '#10B981', tb: '#ECFDF5', tbd: '#0A2E1F' }, dark);
+  document.getElementById(listId).insertAdjacentHTML('afterbegin', card);
+  ta.value = '';
+}
+
+// filter demo 2
+function demoFilter() {
+  const q = document.getElementById('dsearch').value.toLowerCase();
+  document.querySelectorAll('#dl2 > div').forEach(c => {
+    c.style.display = c.textContent.toLowerCase().includes(q) ? '' : 'none';
+  });
+}
+
+// share extension link
+function shareExtension(btn) {
+  const extensionUrl = 'https://chromewebstore.google.com/detail/quickclip-pro-sidebar-clipb/ndibnfgbmcfgoeapohknfeeiilgfhdjg';
+  navigator.clipboard.writeText(extensionUrl).then(() => {
+    // Show success confirmation
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg> Copied to clipboard!';
+    setTimeout(() => {
+      btn.innerHTML = originalText;
+    }, 2000);
+  }).catch(err => {
+    console.error('Failed to copy: ', err);
+    // Show error message
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Failed to copy';
+    setTimeout(() => {
+      btn.innerHTML = originalText;
+    }, 2000);
+  });
+}
+</script>
+</body>
+</html>
