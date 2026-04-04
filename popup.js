@@ -1,13 +1,32 @@
-// Recovery mechanism state variables
+// Performance & State variables
 let deletedSnippets = [];
 let preDeletionSnippets = [];
 let undoTimeout = null;
 let isRecovering = false;
 let hasRecovered = false;
+let isInitialLoad = true; // Flag to skip animations on startup
+
+/** Snippet header: locale date + 12h time as HH:MM with uppercase AM/PM */
+function formatSnippetHeaderTimestamp(ts) {
+  const d = new Date(ts);
+  if (Number.isNaN(d.getTime())) return '';
+  const datePart = d.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'numeric',
+    day: 'numeric'
+  });
+  let h = d.getHours();
+  const m = d.getMinutes();
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  h = h % 12;
+  if (h === 0) h = 12;
+  const hh = String(h).padStart(2, '0');
+  const mm = String(m).padStart(2, '0');
+  return `${datePart}, ${hh}:${mm} ${ampm}`;
+}
 
 document.addEventListener('DOMContentLoaded', function() {
   const snippetText = document.getElementById('snippetText');
-  const tagSelectForNewSnippet = document.getElementById('tagSelect');
   const inputCard = document.querySelector('.card');
   const inputControlsRow = document.querySelector('.input-controls-row');
   const settingsBtn = document.getElementById('settingsBtn');
@@ -16,11 +35,18 @@ document.addEventListener('DOMContentLoaded', function() {
   const themeSelect = document.getElementById('themeSelect');
   const exportDataBtn = document.getElementById('exportDataBtn');
   const importDataBtn = document.getElementById('importDataBtn');
+  const shareExtensionBtn = document.getElementById('shareExtensionBtn');
   const importFileInput = document.getElementById('importFileInput');
   const imageUpload = document.getElementById('imageUpload');
   const imagePreview = document.getElementById('imagePreview');
   const imagePreviewContainer = document.getElementById('imagePreviewContainer');
   const removeImageBtn = document.getElementById('removeImage');
+  const tagSelectTrigger = document.getElementById('tagSelectTrigger');
+  const tagSelectMenu = document.getElementById('tagSelectMenu');
+  const tagSelectInput = document.getElementById('tagSelect');
+  const tagFilterTrigger = document.getElementById('tagFilterTrigger');
+  const tagFilterMenu = document.getElementById('tagFilterMenu');
+  const tagFilterInput = document.getElementById('tagFilter');
 
   // Create the recovery button element
   const recoveryButtonContainer = document.createElement('div');
@@ -110,19 +136,25 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Restore last selected tag for new snippet and apply element colors
-    if (result.lastSelectedTagForNewSnippet && tagSelectForNewSnippet) {
-      tagSelectForNewSnippet.value = result.lastSelectedTagForNewSnippet;
+    if (result.lastSelectedTagForNewSnippet && tagSelectInput) {
+      tagSelectInput.value = result.lastSelectedTagForNewSnippet;
     }
     // Always apply theming on load
-    if (tagSelectForNewSnippet && snippetText && inputCard && inputControlsRow) {
-      const selectedTag = tagSelectForNewSnippet.value;
+    if (tagSelectInput && snippetText && inputCard && inputControlsRow) {
+      const selectedTag = tagSelectInput.value;
       applyTagStyling(selectedTag);
     }
 
     // Restore theme on load
     const theme = result.extensionTheme || 'light';
-    themeSelect.value = theme;
+    if (themeSelect) themeSelect.value = theme;
     applyTheme(theme);
+    
+    // Remove preload and set initial load to false after startup rendering
+    requestAnimationFrame(() => {
+      document.body.classList.remove('preload');
+      isInitialLoad = false;
+    });
   });
 
   // Save textarea height on mouseup (after potential resize)
@@ -159,7 +191,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Apply tag styling function to keep color application consistent
   function applyTagStyling(selectedTag) {
-    const elementsToTheme = [inputCard, snippetText, tagSelectForNewSnippet, inputControlsRow];
+    const imageUploadBtn = document.querySelector('.image-upload-btn');
+    const elementsToTheme = [inputCard, snippetText, tagSelectTrigger, inputControlsRow, imageUploadBtn];
     
     // Remove all existing tag classes
     elementsToTheme.forEach(el => {
@@ -192,19 +225,40 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-  // Code for coloring the input card, snippetText, and tagSelectForNewSnippet based on tag selection
-  if (tagSelectForNewSnippet) {
-    tagSelectForNewSnippet.addEventListener('change', function() {
-      const selectedTag = this.value;
-      applyTagStyling(selectedTag);
-      chrome.storage.local.set({ lastSelectedTagForNewSnippet: selectedTag });
+  // Custom Dropdown Logic
+  function setupCustomDropdown(trigger, menu, input, onChange) {
+    if (!trigger || !menu || !input) return;
+
+    trigger.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isOpen = trigger.parentElement.classList.contains('open');
+      
+      // Close all other dropdowns first
+      document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('open'));
+      document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
+
+      if (!isOpen) {
+        trigger.parentElement.classList.add('open');
+        menu.classList.remove('hidden');
+      }
+    });
+
+    // Close on outside click
+    document.addEventListener('click', (e) => {
+      if (!trigger.parentElement.contains(e.target)) {
+        trigger.parentElement.classList.remove('open');
+        menu.classList.add('hidden');
+      }
     });
   }
+
+  setupCustomDropdown(tagSelectTrigger, tagSelectMenu, tagSelectInput);
+  setupCustomDropdown(tagFilterTrigger, tagFilterMenu, tagFilterInput);
 
   // Save snippet
   document.getElementById('saveSnippet').addEventListener('click', function() {
     const text = snippetText.value.trim();
-    const tag = tagSelectForNewSnippet.value; // This is the currently selected tag
+    const tag = tagSelectInput.value; // This is the currently selected tag
     
     if (text || currentImageDataUrl) {
       savePastedData(text, currentImageDataUrl, tag);
@@ -213,67 +267,185 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   });
 
-  // Add tag filter event listener (for #tagFilter - the one in the filter row)
-  document.getElementById('tagFilter').addEventListener('change', function() {
-    applyFilters();
-  });
-
-  // Date filter input and search input
-  const dateFilterInput = document.getElementById('dateFilter');
+  // Search Input
   const searchInput = document.getElementById('searchSnippets'); 
-
-  // Add date filter event listener
-  dateFilterInput.addEventListener('input', function() {
-    applyFilters();
-    // Format the date to MM/DD for display (optional, can be kept or removed)
-    if (dateFilterInput.value) {
-      const date = new Date(dateFilterInput.value);
-      if (!isNaN(date)) {
-        const mm = String(date.getMonth() + 1).padStart(2, '0');
-        const dd = String(date.getDate()).padStart(2, '0');
-        dateFilterInput.setAttribute('data-formatted', `${mm}/${dd}`);
-        dateFilterInput.blur();
-        setTimeout(() => dateFilterInput.blur(), 10);
-      }
-    } else {
-      dateFilterInput.removeAttribute('data-formatted');
-    }
-  });
-
-  // Add search input event listener
   searchInput.addEventListener('input', function() {
     applyFilters();
   });
 
-  // Set max date to today for dateFilterInput
-  if (dateFilterInput) {
-    const today = new Date();
-    const yyyy = today.getFullYear();
-    const mm = String(today.getMonth() + 1).padStart(2, '0');
-    const dd = String(today.getDate()).padStart(2, '0');
-    dateFilterInput.max = `${yyyy}-${mm}-${dd}`;
+  // Clear All Filters
+  const clearAllFiltersBtn = document.getElementById('clearAllFiltersBtn');
+  if (clearAllFiltersBtn) {
+    clearAllFiltersBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      tagFilterInput.value = 'all';
+      // Sync custom dropdown UI for filter
+      const triggerText = tagFilterTrigger.querySelector('.selected-tag');
+      if (triggerText) triggerText.textContent = 'All Tags';
+      tagFilterTrigger.classList.forEach(c => {
+        if (c.startsWith('bg-')) tagFilterTrigger.classList.remove(c);
+      });
+      
+      if (searchInput) searchInput.value = '';
+      const dateFilterInput = document.getElementById('dateFilter');
+      if (dateFilterInput) {
+        dateFilterInput.dataset.value = '';
+        dateFilterInput.value = '';
+        document.getElementById('calendarDropdown')?.classList.add('hidden');
+        document.getElementById('clearDateBtn')?.classList.add('hidden');
+        document.getElementById('calendarFormatHint')?.classList.remove('hidden');
+      }
+      applyFilters();
+    });
   }
 
-  let calendarOpen = false;
-  dateFilterInput.addEventListener('mousedown', function(e) {
-    e.preventDefault();
-    if (calendarOpen) {
-      dateFilterInput.blur();
-      calendarOpen = false;
-    } else {
-      dateFilterInput.showPicker && dateFilterInput.showPicker();
-      calendarOpen = true;
+  // Custom Calendar Logic
+  const dateFilterInput = document.getElementById('dateFilter');
+  const calendarDropdown = document.getElementById('calendarDropdown');
+  const calendarGrid = document.getElementById('calendarGrid');
+  const currentMonthYear = document.getElementById('currentMonthYear');
+  const prevMonthBtn = document.getElementById('prevMonthBtn');
+  const nextMonthBtn = document.getElementById('nextMonthBtn');
+  const clearDateBtn = document.getElementById('clearDateBtn');
+  const calendarFormatHint = document.getElementById('calendarFormatHint');
+
+  let currentViewDate = new Date(); 
+  let activeDatesSet = new Set();   
+
+  function formatYMD(dateObj) {
+    const y = dateObj.getFullYear();
+    const m = String(dateObj.getMonth() + 1).padStart(2, '0');
+    const d = String(dateObj.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  function renderCalendar(year, month) {
+    if (!calendarGrid) return;
+    calendarGrid.innerHTML = '';
+    
+    const firstDayStr = new Date(year, month, 1);
+    const firstDayIndex = firstDayStr.getDay();
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const prevMonthDays = new Date(year, month, 0).getDate();
+
+    const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+    if (currentMonthYear) currentMonthYear.textContent = `${monthNames[month]} ${year}`;
+
+    const todayStr = formatYMD(new Date());
+    const selectedExactStr = dateFilterInput.dataset.value || '';
+
+    for (let x = firstDayIndex; x > 0; x--) {
+      const dayDiv = document.createElement('div');
+      dayDiv.className = 'calendar-day other-month';
+      dayDiv.textContent = prevMonthDays - x + 1;
+      calendarGrid.appendChild(dayDiv);
     }
-  });
-  dateFilterInput.addEventListener('blur', function() {
-    calendarOpen = false;
-  });
-  dateFilterInput.addEventListener('keydown', function(e) {
-    const allowedKeys = ["Tab", "ArrowLeft", "ArrowRight", "Backspace", "Delete"];
-    if (!allowedKeys.includes(e.key)) {
-      e.preventDefault();
-    }
-  });
+
+    chrome.storage.local.get(['snippets'], function(result) {
+      activeDatesSet.clear();
+      (result.snippets || []).forEach(snip => {
+         if (snip.timestamp) {
+           const ymd = new Date(snip.timestamp).toLocaleDateString('en-CA');
+           activeDatesSet.add(ymd);
+         }
+      });
+
+      for (let i = 1; i <= daysInMonth; i++) {
+        const cellDate = new Date(year, month, i);
+        const ymdStr = formatYMD(cellDate);
+        const isFuture = ymdStr > todayStr;
+
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day' + (isFuture ? ' disabled' : '');
+        dayDiv.textContent = i;
+        
+        if (ymdStr === todayStr) dayDiv.classList.add('today');
+        if (ymdStr === selectedExactStr) dayDiv.classList.add('active');
+        if (activeDatesSet.has(ymdStr)) dayDiv.classList.add('has-snippets');
+
+        if (!isFuture) {
+          dayDiv.addEventListener('click', () => {
+            dateFilterInput.dataset.value = ymdStr;
+            const shortMonth = monthNames[month].substring(0, 3);
+            dateFilterInput.value = `${i} ${shortMonth}`;
+            
+            calendarDropdown.classList.add('hidden');
+            if (clearDateBtn) clearDateBtn.classList.remove('hidden');
+            if (calendarFormatHint) calendarFormatHint.classList.add('hidden');
+            applyFilters();
+          });
+        }
+
+        calendarGrid.appendChild(dayDiv);
+      }
+
+      const totalCells = firstDayIndex + daysInMonth;
+      const remaining = totalCells <= 35 ? (35 - totalCells) : (42 - totalCells);
+      for (let i = 1; i <= remaining; i++) {
+        const dayDiv = document.createElement('div');
+        dayDiv.className = 'calendar-day other-month';
+        dayDiv.textContent = i;
+        calendarGrid.appendChild(dayDiv);
+      }
+    });
+  }
+
+  if (prevMonthBtn && nextMonthBtn) {
+    prevMonthBtn.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      let m = currentViewDate.getMonth() - 1;
+      let y = currentViewDate.getFullYear();
+      if (m < 0) { m = 11; y--; }
+      currentViewDate = new Date(y, m, 1);
+      renderCalendar(y, m);
+    });
+    nextMonthBtn.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      let m = currentViewDate.getMonth() + 1;
+      let y = currentViewDate.getFullYear();
+      if (m > 11) { m = 0; y++; }
+      currentViewDate = new Date(y, m, 1);
+      renderCalendar(y, m);
+    });
+  }
+
+  if (dateFilterInput && calendarDropdown) {
+    dateFilterInput.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const isHidden = calendarDropdown.classList.contains('hidden');
+      if (isHidden) {
+        const selStr = dateFilterInput.dataset.value;
+        if (selStr) {
+          const d = new Date(selStr);
+          currentViewDate = new Date(d.getFullYear(), d.getMonth(), 1);
+        } else {
+          currentViewDate = new Date();
+        }
+        renderCalendar(currentViewDate.getFullYear(), currentViewDate.getMonth());
+        calendarDropdown.classList.remove('hidden');
+      } else {
+        calendarDropdown.classList.add('hidden');
+      }
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!calendarDropdown.contains(e.target) && e.target !== dateFilterInput) {
+        calendarDropdown.classList.add('hidden');
+      }
+    });
+  }
+
+  if (clearDateBtn) {
+    clearDateBtn.addEventListener('click', (e) => {
+      e.preventDefault(); e.stopPropagation();
+      dateFilterInput.dataset.value = '';
+      dateFilterInput.value = '';
+      calendarDropdown.classList.add('hidden');
+      if (clearDateBtn) clearDateBtn.classList.add('hidden');
+      if (calendarFormatHint) calendarFormatHint.classList.remove('hidden');
+      applyFilters();
+    });
+  }
 
   // Allow pasting images with keyboard (Ctrl+V) on the text area
   if (snippetText) {
@@ -309,24 +481,52 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Make the paste and save function more reliable for images
+  // Make the paste and save function more reliable for combined text & images
   document.getElementById('pasteSaveSnippet').addEventListener('click', async function() {
-    const tag = tagSelectForNewSnippet.value;
+    const tag = tagSelectInput.value;
     let textToSave = snippetText.value; // Preserve existing text if any
     let imageToSave = currentImageDataUrl;
+    let saveHandledAsync = false;
 
     try {
-      // First try to get image data directly from clipboard items
       const clipboardItems = await navigator.clipboard.read();
-      let foundImage = false;
 
       for (const item of clipboardItems) {
+        // 1. Check for compiled rich html payload (from our own tool!)
+        if (item.types.includes('text/html')) {
+          try {
+            const htmlBlob = await item.getType('text/html');
+            const htmlStr = await htmlBlob.text();
+            
+            // Extract image data URL from the HTML string
+            const imgMatch = htmlStr.match(/<img[^>]+src="([^">]+)"/i);
+            if (imgMatch && imgMatch[1].startsWith('data:image/')) {
+              imageToSave = imgMatch[1];
+              currentImageDataUrl = imageToSave;
+              imagePreview.src = imageToSave;
+              imagePreviewContainer.style.display = 'block';
+            }
+          } catch (e) { console.error('Error parsing HTML clipboard', e); }
+        }
+
+        // 2. Check for plain text
+        if (item.types.includes('text/plain') && !textToSave.trim()) {
+           try {
+             const textBlob = await item.getType('text/plain');
+             const text = await textBlob.text();
+             if (text.trim()) {
+               textToSave = text.trim();
+               snippetText.value = textToSave;
+             }
+           } catch (e) { console.error('Error parsing text/plain clipboard', e); }
+        }
+
+        // 3. Check for dedicated image blob
         const imageType = item.types.find(type => type.startsWith('image/'));
-        if (imageType) {
+        if (imageType && !imageToSave) {
           const blob = await item.getType(imageType);
-          foundImage = true;
+          saveHandledAsync = true;
           
-          // Read as data URL
           const reader = new FileReader();
           reader.onload = function(e) {
             imageToSave = e.target.result;
@@ -334,30 +534,30 @@ document.addEventListener('DOMContentLoaded', function() {
             imagePreview.src = imageToSave;
             imagePreviewContainer.style.display = 'block';
             
-            // Save with image
-            savePastedData(textToSave, imageToSave, tag);
+            savePastedData(textToSave.trim(), imageToSave, tag);
           };
           reader.readAsDataURL(blob);
-          
-          // Return early - we're handling the save in the onload callback
-          return;
+          return; // Async save handled in reader
         }
       }
 
-      // If no image, try to get text if we don't already have it
-      if (!foundImage && !textToSave.trim()) {
-      const text = await navigator.clipboard.readText();
-      if (text.trim()) {
-          textToSave = text.trim();
-          snippetText.value = textToSave;
+      // If we made it here without async handling, save what we found
+      if (!saveHandledAsync) {
+        if (!textToSave.trim()) {
+          try {
+            const text = await navigator.clipboard.readText();
+            if (text.trim()) {
+              textToSave = text.trim();
+              snippetText.value = textToSave;
+            }
+          } catch(e) {}
         }
-      }
-      
-      // Save if we have either text or image
-      if (textToSave.trim() || imageToSave) {
-        savePastedData(textToSave.trim(), imageToSave, tag);
-      } else {
-        showNotification('Nothing found to paste.', 'warning');
+        
+        if (textToSave.trim() || imageToSave) {
+          savePastedData(textToSave.trim(), imageToSave, tag);
+        } else {
+          showNotification('Nothing found to paste.', 'warning');
+        }
       }
     } catch (err) {
       console.error('Advanced clipboard API error:', err);
@@ -463,12 +663,32 @@ document.addEventListener('DOMContentLoaded', function() {
   function applyTheme(theme) {
     document.body.classList.remove('theme-light', 'theme-dark');
     document.body.classList.add('theme-' + theme);
+    // Update theme toggle buttons
+    const lightBtn = document.getElementById('themeLightBtn');
+    const darkBtn = document.getElementById('themeDarkBtn');
+    if (lightBtn && darkBtn) {
+      lightBtn.classList.toggle('active', theme === 'light');
+      darkBtn.classList.toggle('active', theme === 'dark');
+    }
+    // Keep hidden select in sync for backward compat
+    if (themeSelect) themeSelect.value = theme;
   }
   themeSelect.addEventListener('change', function() {
     const theme = themeSelect.value;
     applyTheme(theme);
     chrome.storage.local.set({ extensionTheme: theme });
   });
+
+  // Theme toggle buttons
+  const themeLightBtn = document.getElementById('themeLightBtn');
+  const themeDarkBtn = document.getElementById('themeDarkBtn');
+  function handleThemeBtn(e) {
+    const theme = e.currentTarget.dataset.theme;
+    applyTheme(theme);
+    chrome.storage.local.set({ extensionTheme: theme });
+  }
+  if (themeLightBtn) themeLightBtn.addEventListener('click', handleThemeBtn);
+  if (themeDarkBtn) themeDarkBtn.addEventListener('click', handleThemeBtn);
 
   // --- Settings Toggles ---
   const toggles = [
@@ -485,10 +705,7 @@ document.addEventListener('DOMContentLoaded', function() {
       // Only apply visibility toggles
       if (!t.selector) return;
       
-      // For the date filter, we want it hidden by default (if it's not set yet)
-      let show = t.id === 'toggleDateFilter' ? 
-        settings[t.id] === true : // Only show if explicitly set to true
-        settings[t.id] !== false; // Otherwise, show unless explicitly set to false
+      let show = settings[t.id] !== false; 
         
       if (t.all) {
         document.querySelectorAll(t.selector).forEach(el => el.classList.toggle('hidden', !show));
@@ -497,6 +714,15 @@ document.addEventListener('DOMContentLoaded', function() {
         if (el) el.classList.toggle('hidden', !show);
       }
     });
+
+    const filterHeader = document.getElementById('filterSectionHeader');
+    if (filterHeader) {
+      const anyFilterVisible =
+        settings.toggleSearchFilter !== false ||
+        settings.toggleDateFilter !== false ||
+        settings.toggleTagFilter !== false;
+      filterHeader.classList.toggle('filter-header--line-only', !anyFilterVisible);
+    }
     
     // Add logic for input-controls-row layout
     const inputControlsRow = document.querySelector('.input-controls-row');
@@ -537,13 +763,8 @@ document.addEventListener('DOMContentLoaded', function() {
     toggles.forEach(t => {
       const cb = document.getElementById(t.id);
       if (cb) {
-        // Special handling for the date filter, default to unchecked
-        if (t.id === 'toggleDateFilter' && settings[t.id] === undefined) {
-          cb.checked = false; // Default to unchecked if not set
-        } else {
-          // Default all toggles to checked if not explicitly set (except date filter)
-          cb.checked = settings[t.id] !== false;
-        }
+        // Default all toggles to checked if not explicitly set
+        cb.checked = settings[t.id] !== false;
       }
     });
     // Apply visual toggles on load
@@ -633,13 +854,16 @@ document.addEventListener('DOMContentLoaded', function() {
       // Update main counter name in header
       const counterTitle = document.querySelector('.logo-title b');
       if (counterTitle) {
-        counterTitle.textContent = mainCounterName + ':';
+        counterTitle.textContent = mainCounterName;
+        // Also update parent title for tooltip on the whole logo-title block
+        const logoTitle = counterTitle.parentElement;
+        if (logoTitle) logoTitle.title = mainCounterName;
       }
       
-      // Update main counter visibility
+      // Update main counter visibility toggle icon (but don't hide the button!)
       const mainCounterToggle = document.querySelector('.main-counter .toggle-counter');
       if (mainCounterToggle) {
-        mainCounterToggle.classList.toggle('hidden', hiddenCounters.includes('main'));
+        updateToggleButtonIcon(mainCounterToggle, hiddenCounters.includes('main'));
       }
       
       displayCountersList(counters);
@@ -711,7 +935,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </svg>
       `;
       button.title = "Show counter";
-      button.classList.add('hidden');
+      button.classList.add('is-hidden-state');
     } else {
       button.innerHTML = `
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -720,7 +944,7 @@ document.addEventListener('DOMContentLoaded', function() {
         </svg>
       `;
       button.title = "Hide counter";
-      button.classList.remove('hidden');
+      button.classList.remove('is-hidden-state');
     }
   }
 
@@ -752,15 +976,21 @@ document.addEventListener('DOMContentLoaded', function() {
         miniCounter.className = 'mini-counter';
         miniCounter.innerHTML = `
           <div class="counter-header">
-            <span class="counter-title">${counter.name}</span>
+            <span class="counter-title" title="${counter.name}">${counter.name}</span>
           </div>
           <div class="counter-controls">
-            <button class="decrement-mini" data-id="${counter.id}" aria-label="Decrement">
+            <button class="decrement-mini" data-id="${counter.id}" aria-label="Decrement" title="Decrement">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
             </button>
             <span class="counter-value">${counter.value || 0}</span>
-            <button class="increment-mini" data-id="${counter.id}" aria-label="Increment">
+            <button class="increment-mini" data-id="${counter.id}" aria-label="Increment" title="Increment">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            </button>
+            <button class="reset-mini reset-btn" data-id="${counter.id}" aria-label="Reset" title="Reset">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="1 4 1 10 7 10"></polyline>
+                <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+              </svg>
             </button>
           </div>
         `;
@@ -777,6 +1007,18 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.querySelectorAll('.increment-mini').forEach(btn => {
       btn.addEventListener('click', () => updateMiniCounter(btn.dataset.id, 1));
+    });
+    document.querySelectorAll('.reset-mini').forEach(btn => {
+      btn.addEventListener('click', () => {
+        chrome.storage.local.get(['additionalCounters'], function(result) {
+          const counters = result.additionalCounters || [];
+          const counterIndex = counters.findIndex(c => c.id === btn.dataset.id);
+          if (counterIndex !== -1) {
+            counters[counterIndex].value = 0;
+            chrome.storage.local.set({ additionalCounters: counters }, loadCounters);
+          }
+        });
+      });
     });
   }
 
@@ -967,7 +1209,7 @@ document.addEventListener('DOMContentLoaded', function() {
       
       tagItem.innerHTML = `
         <div class="tag-info">
-          <span class="tag-name">
+          <span class="tag-name" title="${tag.name}">
             ${tag.name}
           </span>
           <div class="tag-actions">
@@ -1032,46 +1274,87 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Update tag selects in the UI
   function updateTagSelects(tags) {
-    const tagSelects = [
-      document.getElementById('tagSelect'),
-      document.getElementById('tagFilter')
+    const configs = [
+      { trigger: tagSelectTrigger, menu: tagSelectMenu, input: tagSelectInput, type: 'select' },
+      { trigger: tagFilterTrigger, menu: tagFilterMenu, input: tagFilterInput, type: 'filter' }
     ];
     
-    tagSelects.forEach(select => {
-      if (!select) return;
+    configs.forEach(config => {
+      if (!config.trigger || !config.menu || !config.input) return;
       
-      // Save current value
-      const currentValue = select.value;
+      const currentValue = config.input.value;
+      config.menu.innerHTML = '';
       
-      // Clear options except "All Tags" for the filter
-      if (select.id === 'tagFilter') {
-        select.innerHTML = '<option value="all">All Tags</option>';
-      } else {
-        select.innerHTML = '';
+      if (config.type === 'filter') {
+        const allOption = document.createElement('div');
+        allOption.className = 'dropdown-item tag-all' + (currentValue === 'all' ? ' active' : '');
+        allOption.textContent = 'All Tags';
+        allOption.onclick = () => handleSelect(config, 'all', 'All Tags', 'tag-all');
+        config.menu.appendChild(allOption);
+        if (currentValue === 'all') updateTrigger(config.trigger, 'All Tags', '');
       }
       
-      // Add options for each tag
       tags.forEach(tag => {
-        const option = document.createElement('option');
-        option.value = tag.id;
-        option.textContent = tag.name;
-        option.className = `tag-option-${tag.colorId}`;
-        select.appendChild(option);
-      });
-      
-      // Restore selected value if it still exists
-      if (currentValue && Array.from(select.options).some(opt => opt.value === currentValue)) {
-        select.value = currentValue;
-      } else if (select.options.length > 0) {
-        // Set first option as default if previous value is no longer available
-        select.value = select.options[0].value;
-        if (select.id === 'tagSelect') {
-          // Apply styling for the first tag
-          applyTagStyling(select.value);
-          chrome.storage.local.set({ lastSelectedTagForNewSnippet: select.value });
+        const item = document.createElement('div');
+        const colorId = tag.colorId;
+        item.className = `dropdown-item tag-${colorId}` + (currentValue === tag.id ? ' active' : '');
+        
+        // Truncate name for display if extreme
+        const displayLimit = 24;
+        const displayName = tag.name.length > displayLimit ? tag.name.substring(0, displayLimit) + '...' : tag.name;
+        
+        item.textContent = displayName;
+        item.title = tag.name;
+        item.onclick = () => handleSelect(config, tag.id, displayName, `bg-${colorId}`);
+        config.menu.appendChild(item);
+        
+        if (currentValue === tag.id) {
+          updateTrigger(config.trigger, displayName, `bg-${colorId}`);
         }
+      });
+
+      // If current value is no longer valid, fallback to first tag (for select) or all (for filter)
+      const valid = Array.from(config.menu.querySelectorAll('.dropdown-item')).some(i => i.textContent === config.trigger.querySelector('.selected-tag').textContent || config.input.value === 'all');
+      
+      if (!valid && config.type === 'select' && tags.length > 0) {
+        handleSelect(config, tags[0].id, tags[0].name, `bg-${tags[0].colorId}`);
       }
     });
+
+    function handleSelect(config, value, text, bgClass) {
+      config.input.value = value;
+      updateTrigger(config.trigger, text, bgClass);
+      
+      // Update active state in menu
+      config.menu.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('active'));
+      
+      // Highlight the correct one
+      const items = Array.from(config.menu.querySelectorAll('.dropdown-item'));
+      const activeItem = items.find(i => i.textContent === text);
+      if (activeItem) activeItem.classList.add('active');
+
+      config.trigger.parentElement.classList.remove('open');
+      config.menu.classList.add('hidden');
+
+      if (config.type === 'filter') {
+        applyFilters();
+      } else {
+        applyTagStyling(value);
+        chrome.storage.local.set({ lastSelectedTagForNewSnippet: value });
+      }
+    }
+
+    function updateTrigger(trigger, text, bgClass) {
+      const textEl = trigger.querySelector('.selected-tag');
+      textEl.textContent = text;
+      textEl.title = text;
+      
+      // Remove previous bg classes
+      trigger.classList.forEach(c => {
+        if (c.startsWith('bg-')) trigger.classList.remove(c);
+      });
+      if (bgClass) trigger.classList.add(bgClass);
+    }
   }
 
   // Edit tag name
@@ -1165,75 +1448,58 @@ document.addEventListener('DOMContentLoaded', function() {
     addTagBtn.style.display = 'none'; // Hide the add button completely
   }
 
-  // Initialize tags when popup opens
-  console.log("DOM loaded, initializing tags...");
+  // --- Initializers ---
   loadTags();
+  loadCounters();
 
   // Export and Import Data functionality
-  if (exportDataBtn) {
-    exportDataBtn.addEventListener('click', exportData);
-  }
-  
-  if (importDataBtn) {
-    importDataBtn.addEventListener('click', function() {
-      importFileInput.click();
-    });
-  }
-  
-  if (importFileInput) {
-    importFileInput.addEventListener('change', importData);
-  }
+  if (exportDataBtn) exportDataBtn.addEventListener('click', exportData);
+  if (importDataBtn) importDataBtn.addEventListener('click', () => importFileInput.click());
+  if (shareExtensionBtn) shareExtensionBtn.addEventListener('click', shareExtension);
+  if (importFileInput) importFileInput.addEventListener('change', importData);
 
-  // Recovery button click handler
+  // Recovery button click handler - one consolidated listener
   document.addEventListener('click', function(e) {
     if (e.target.closest('#recoverSnippetBtn')) {
       recoverDeletedSnippets();
     }
   });
 
-  // Initialize the recovery button setting
+  // Initialize recovery button setting
   chrome.storage.local.get(['toggleRecoveryButton'], function(result) {
-    // Default to true if not set
     const recoveryEnabled = result.toggleRecoveryButton !== false;
-    
-    // Add the setting to the settings modal if not already there
     const settingsToggles = document.querySelector('.settings-toggles');
     if (settingsToggles && !document.getElementById('toggleRecoveryButton')) {
       const recoveryToggle = document.createElement('label');
-      recoveryToggle.innerHTML = `<input type="checkbox" id="toggleRecoveryButton" ${recoveryEnabled ? 'checked' : ''}> Show Recovery Button for Deleted Snippets`;
-      settingsToggles.appendChild(document.createElement('br'));
+      recoveryToggle.className = 'toggle-label';
+      recoveryToggle.innerHTML = `<input type="checkbox" id="toggleRecoveryButton" ${recoveryEnabled ? 'checked' : ''}><span class="toggle-text">Show Recovery Button</span>`;
       settingsToggles.appendChild(recoveryToggle);
       
-      // Add event listener for the toggle
       const recoveryToggleCheckbox = document.getElementById('toggleRecoveryButton');
       if (recoveryToggleCheckbox) {
         recoveryToggleCheckbox.addEventListener('change', function() {
           chrome.storage.local.set({ toggleRecoveryButton: this.checked });
-          
-          // If disabled, hide the recovery button and clear state
-          if (!this.checked) {
-            hideRecoveryButton();
-          }
+          if (!this.checked) hideRecoveryButton();
         });
       }
-    }
-  });
-
-  // Add an event listener for the recover button directly on the document
-  // This ensures it works even if the button is dynamically created
-  document.addEventListener('click', function(e) {
-    const recoverBtn = e.target.closest('#recoverSnippetBtn');
-    if (recoverBtn) {
-      console.log("Recover button clicked");
-      recoverDeletedSnippets();
     }
   });
 });
 
 function applyFilters() {
   const selectedTag = document.getElementById('tagFilter').value;
-  const selectedDate = document.getElementById('dateFilter').value;
-  const searchTerm = document.getElementById('searchSnippets').value.toLowerCase();
+  const selectedDate = document.getElementById('dateFilter').dataset.value || '';
+  const searchInput = document.getElementById('searchSnippets');
+  const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+
+  const clearAllBtn = document.getElementById('clearAllFiltersBtn');
+  if (clearAllBtn) {
+    if (selectedTag !== 'all' || selectedDate !== '' || searchTerm !== '') {
+      clearAllBtn.classList.remove('hidden');
+    } else {
+      clearAllBtn.classList.add('hidden');
+    }
+  }
 
   // Style the tag filter dropdown based on selection
   const tagFilterSelect = document.getElementById('tagFilter');
@@ -1298,7 +1564,10 @@ const CLICK_DELAY = 250; // milliseconds delay to detect double-click
 
 function displaySnippets(snippets) {
   const snippetsList = document.getElementById('snippetsList');
-  snippetsList.innerHTML = ''; // Clear existing snippets
+  if (!snippetsList) return;
+  
+  // Use DocumentFragment for faster, atomic DOM updates
+  const fragment = document.createDocumentFragment();
   
   // Remove any existing listeners to prevent duplicates
   snippetsList.removeEventListener('click', handleSnippetClick);
@@ -1306,43 +1575,61 @@ function displaySnippets(snippets) {
   
   chrome.storage.local.get(['customTags', 'toggleDoubleClickEdit'], function(result) {
     const tags = result.customTags || defaultTags;
-    const doubleClickEditEnabled = result.toggleDoubleClickEdit !== false; // Default to true
-
-  snippets.forEach(snippet => {
+    const doubleClickEditEnabled = result.toggleDoubleClickEdit !== false;
+    
+    snippets.forEach((snippet, index) => {
       const tagObj = tags.find(t => t.id === snippet.tag) || 
                      { id: snippet.tag, name: snippet.tag, colorId: 'note' };
       
-    const snippetElement = document.createElement('div');
+      const snippetElement = document.createElement('div');
       snippetElement.className = `snippet-item ${tagObj.colorId}`;
-      snippetElement.dataset.snippetId = snippet.id; // Store snippet ID
-    
+      
+      // OPTIMIZATION: On initial load, skip animations entirely for instant appearance
+      if (isInitialLoad) {
+        snippetElement.classList.add('no-animation');
+      } else {
+        // Shorter staggered delay only for filtering/adding during session
+        snippetElement.style.animationDelay = `${Math.min(index * 15, 150)}ms`;
+      }
+      
+      snippetElement.dataset.snippetId = snippet.id;
+
       // Top Tag and Timestamp
-    const topTagElement = document.createElement('div');
-    topTagElement.className = 'snippet-top-tag';
-      topTagElement.textContent = tagObj.name;
-    const timestampEl = document.createElement('small');
-    timestampEl.classList.add('snippet-timestamp');
-      timestampEl.textContent = new Date(snippet.timestamp).toLocaleString();
-    topTagElement.appendChild(timestampEl);
+      const topTagElement = document.createElement('div');
+      topTagElement.className = 'snippet-top-tag';
+      
+      const tagNameSpan = document.createElement('span');
+      tagNameSpan.className = 'snippet-tag-name';
+      tagNameSpan.textContent = tagObj.name;
+      tagNameSpan.title = tagObj.name;
+      topTagElement.appendChild(tagNameSpan);
+      
+      const timestampEl = document.createElement('small');
+      timestampEl.classList.add('snippet-timestamp');
+      timestampEl.textContent = formatSnippetHeaderTimestamp(snippet.timestamp);
+      topTagElement.appendChild(timestampEl);
       snippetElement.appendChild(topTagElement);
     
       // Content Wrapper
-    const contentWrapper = document.createElement('div');
-    contentWrapper.className = 'snippet-content-wrapper';
+      const contentWrapper = document.createElement('div');
+      contentWrapper.className = 'snippet-content-wrapper';
 
-      // Content Area (initially display-only)
-    const content = document.createElement('div');
-    content.className = 'snippet-content';
-      renderSnippetContent(content, snippet); // Use enhanced helper to render content with images
+      const content = document.createElement('div');
+      content.className = 'snippet-content';
+      renderSnippetContent(content, snippet);
       contentWrapper.appendChild(content);
 
-      // Actions (Copy, Delete)
+      // Actions
       const actions = createSnippetActions(snippet);
       contentWrapper.appendChild(actions);
 
       snippetElement.appendChild(contentWrapper);
-      snippetsList.appendChild(snippetElement);
+      fragment.appendChild(snippetElement);
     });
+
+    // Clear and Append once for maximum efficiency
+    snippetsList.innerHTML = '';
+    snippetsList.appendChild(fragment);
 
     // Add consolidated event listeners after rendering all snippets
     snippetsList.addEventListener('click', handleSnippetClick);
@@ -1385,30 +1672,48 @@ function renderSnippetContent(contentElement, snippet) {
     // Add the image first
     imageContainer.appendChild(img);
     
-    // Copy image button - Create it as a separate div with absolute positioning
-    const copyBtnContainer = document.createElement('div');
-    copyBtnContainer.className = 'copy-btn-container';
-    copyBtnContainer.style.position = 'absolute';
-    copyBtnContainer.style.top = '5px';
-    copyBtnContainer.style.right = '5px';
-    copyBtnContainer.style.zIndex = '20';
-    
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'copy-image-btn';
-    copyBtn.title = 'Copy image';
-    copyBtn.innerHTML = `
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-      </svg>
-    `;
-    copyBtn.addEventListener('click', (e) => {
-      e.stopPropagation(); // Prevent opening the image in a new tab
-      copyImageToClipboard(snippet.image, copyBtn);
-    });
-    
-    copyBtnContainer.appendChild(copyBtn);
-    imageContainer.appendChild(copyBtnContainer);
+    // Add specific image copy button ONLY if the snippet also has text
+    // (If it's image-only, the main copy button will just copy the image natively)
+    if (snippet.text && snippet.text.trim().length > 0) {
+      const copyBtnContainer = document.createElement('div');
+      copyBtnContainer.className = 'copy-btn-container';
+      copyBtnContainer.style.position = 'absolute';
+      copyBtnContainer.style.top = '5px';
+      copyBtnContainer.style.right = '5px';
+      copyBtnContainer.style.zIndex = '20';
+      
+      const copyImgBtn = document.createElement('button');
+      copyImgBtn.className = 'copy-image-btn';
+      copyImgBtn.title = 'Copy image only';
+      copyImgBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+          <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+        </svg>
+      `;
+      copyImgBtn.addEventListener('click', async (e) => {
+        e.stopPropagation(); // Prevent opening the image in a new tab
+        try {
+          const imgRes = await fetch(snippet.image);
+          const imgBlob = await imgRes.blob();
+          const pngBlob = imgBlob.type === 'image/png' ? imgBlob : new Blob([imgBlob], { type: 'image/png' });
+          const item = new ClipboardItem({ 'image/png': pngBlob });
+          await navigator.clipboard.write([item]);
+          
+          copyImgBtn.classList.add('copy-success');
+          copyImgBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+          setTimeout(() => {
+            copyImgBtn.classList.remove('copy-success');
+            copyImgBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+          }, 1500);
+        } catch (err) {
+          console.error('Copy image error:', err);
+        }
+      });
+      
+      copyBtnContainer.appendChild(copyImgBtn);
+      imageContainer.appendChild(copyBtnContainer);
+    }
     
     // Open image in new tab when clicked
     imageContainer.addEventListener('click', () => {
@@ -1447,65 +1752,53 @@ function renderSnippetContent(contentElement, snippet) {
   contentElement.appendChild(contentContainer);
 }
 
-// Helper function to copy image to clipboard
-function copyImageToClipboard(dataUrl, buttonElement) {
-  // Convert data URL to blob
-  const fetchImage = fetch(dataUrl);
-  fetchImage.then(res => res.blob())
-    .then(blob => {
-      const item = new ClipboardItem({ 'image/png': blob });
-      navigator.clipboard.write([item])
-        .then(() => {
-          // Show success indicator
-          buttonElement.classList.add('copy-success');
-          buttonElement.innerHTML = `
-            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2">
-              <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>
-          `;
-          setTimeout(() => {
-            buttonElement.classList.remove('copy-success');
-            buttonElement.innerHTML = `
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-              </svg>
-            `;
-          }, 1500);
-        })
-        .catch(err => {
-          console.error('Could not copy image: ', err);
-          alert('Failed to copy image to clipboard.');
-        });
-    })
-    .catch(err => {
-      console.error('Error processing image: ', err);
-      alert('Failed to process image for copying.');
-    });
-}
-
 // Helper function to create action buttons
 function createSnippetActions(snippet) {
     const actions = document.createElement('div');
     actions.className = 'snippet-actions';
 
-  // Copy button for text only
+  // Copy button — copies text AND image together when both exist
     const copyBtn = document.createElement('button');
     copyBtn.className = 'copy-btn';
-    copyBtn.title = 'Copy text';
+    copyBtn.title = 'Copy snippet';
     copyBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
     copyBtn.addEventListener('click', async () => {
       try {
-        // Only copy text, regardless of whether an image exists
-        await navigator.clipboard.writeText(snippet.text || '');
+        const clipboardItems = [];
+        const textContent = snippet.text || '';
+
+        if (snippet.image && textContent) {
+          // Both text and image: write as rich HTML clipboard AND plain text so that target apps paste both
+          const htmlContent = `<div>${textContent.replace(/\n/g, '<br>')}</div><br><img src="${snippet.image}" />`;
+          const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
+          const textBlob = new Blob([textContent], { type: 'text/plain' });
+          
+          const item = new ClipboardItem({
+            'text/html': htmlBlob,
+            'text/plain': textBlob
+          });
+          await navigator.clipboard.write([item]);
+        } else if (snippet.image) {
+          // Image only
+          const imgRes = await fetch(snippet.image);
+          const imgBlob = await imgRes.blob();
+          const pngBlob = imgBlob.type === 'image/png' ? imgBlob : new Blob([imgBlob], { type: 'image/png' });
+          const item = new ClipboardItem({ 'image/png': pngBlob });
+          await navigator.clipboard.write([item]);
+        } else {
+          // Text only
+          await navigator.clipboard.writeText(textContent);
+        }
         showCopySuccess(copyBtn);
       } catch (error) {
-        console.error('Copy text error:', error);
-        showNotification('Failed to copy text to clipboard.', 'error');
-        copyBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="red" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg>`;
-      setTimeout(() => {
-      copyBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
-        }, 1500);
+        console.error('Copy error:', error);
+        // Fallback: at least copy text
+        try {
+          await navigator.clipboard.writeText(snippet.text || '');
+          showCopySuccess(copyBtn);
+        } catch (e2) {
+          showNotification('Failed to copy to clipboard.', 'error');
+        }
       }
     });
     actions.appendChild(copyBtn);
@@ -1774,9 +2067,8 @@ function saveEdit(snippetId, newText, removeImage = false) {
         if (removeImage) {
           snippet.image = null;
         }
-        snippet.timestamp = new Date().toLocaleString(); // Update timestamp
         
-      chrome.storage.local.set({ snippets: snippets }, function() {
+        chrome.storage.local.set({ snippets: snippets }, function() {
           if (chrome.runtime.lastError) {
             console.error("Error saving snippet:", chrome.runtime.lastError);
           } else {
@@ -1872,6 +2164,23 @@ function importData() {
   };
   
   reader.readAsText(file);
+}
+
+function shareExtension() {
+  const shareUrl = 'https://akasumitlamba.github.io/QuickClipPro/';
+
+  // Open the same page in a new tab
+  window.open(shareUrl, '_blank', 'noopener');
+
+  // Copy link to clipboard and notify user
+  navigator.clipboard.writeText(shareUrl)
+    .then(() => {
+      showNotification('Share link copied to clipboard!', 'success');
+    })
+    .catch((error) => {
+      console.error('Failed to copy share link:', error);
+      showNotification('Opened page. Could not copy link.', 'warning');
+    });
 }
 
 // Notification function for feedback
