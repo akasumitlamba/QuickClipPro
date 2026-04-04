@@ -1,50 +1,67 @@
 <!DOCTYPE html>
+<html lang="en">
 
-
-<html>
 <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>QuickClip Sidebar</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
 </head>
-<body>
+
+<body class="preload">
   <div class="container">
     <div class="header">
-      <!-- <a href="https://www.linkedin.com/in/akasumitlamba/" target="_blank" class="extension-name-link" title="Go to Creator Profile (akasumitlamba)">
-        QuickClip
-      </a> -->
+      <span class="header-brand">QuickClip Pro</span>
       <div class="header-title-counter">
         <span class="logo-title"><b>Execution Count:</b></span>
         <div class="counter-controls">
           <button id="decrementBtn" aria-label="Decrement count">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
           </button>
           <span id="counter">0</span>
           <button id="incrementBtn" aria-label="Increment count">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <line x1="12" y1="5" x2="12" y2="19"></line>
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+            </svg>
           </button>
-          <button id="resetBtn" class="reset-btn" aria-label="Reset count">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+          <button id="resetBtn" class="reset-btn" aria-label="Reset count" title="Reset count">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <polyline points="1 4 1 10 7 10"></polyline>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+            </svg>
           </button>
         </div>
       </div>
+      <div class="header-spacer"></div>
       <button id="settingsBtn" class="settings-btn" aria-label="Settings" title="Settings">
-        <svg class="icon" viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-          <path fill="currentColor" d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
+        <svg class="icon settings-gear" viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+          <path fill="currentColor"
+            d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
         </svg>
       </button>
     </div>
-    
+
     <!-- Additional Counters Grid -->
     <div id="additionalCountersGrid" class="additional-counters-grid">
       <!-- Additional counters will be dynamically added here -->
     </div>
 
-    <div class="card">
+    <div id="inputCard" class="card">
       <textarea id="snippetText" placeholder="Enter your text, image or link here..."></textarea>
       <div class="image-preview-container" id="imagePreviewContainer" style="display: none;">
         <img id="imagePreview" src="" alt="Preview">
         <button id="removeImage" class="remove-image-btn" title="Remove image">
-          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
+            stroke-linecap="round" stroke-linejoin="round">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
@@ -52,83 +69,155 @@
       </div>
       <div class="input-controls-row">
         <div class="select-wrapper">
-          <select id="tagSelect" class="tag-select" aria-label="Select tag for new snippet">
-            <option value="created">Created</option>
-            <option value="closed">Closed</option>
-            <option value="reopened">Reopened</option>
-            <option value="note">Note</option>
-          </select>
-          <span class="select-arrow">
-            <svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 10l5 5 5-5z"/></svg>
-          </span>
+          <div class="custom-dropdown" id="tagSelectContainer">
+            <div class="dropdown-trigger" id="tagSelectTrigger">
+              <span class="selected-tag">Select Tag</span>
+              <svg class="dropdown-arrow" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <path d="M7 10l5 5 5-5z" />
+              </svg>
+            </div>
+            <div class="dropdown-menu hidden" id="tagSelectMenu"></div>
+            <input type="hidden" id="tagSelect" value="created">
+          </div>
         </div>
         <label for="imageUpload" class="image-upload-btn" title="Upload an image">
-          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
-            <circle cx="8.5" cy="8.5" r="1.5"/>
-            <polyline points="21 15 16 10 5 21"/>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+            <circle cx="12" cy="13" r="4" />
           </svg>
         </label>
         <input type="file" id="imageUpload" accept="image/*" style="display: none;">
-        <button id="pasteSaveSnippet" aria-label="Paste and Save" title="Paste and Save">
-          Paste
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-left: 4px;">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-            <polyline points="17 21 17 13 7 13 7 21"/>
-            <polyline points="7 3 7 8 15 8"/>
+        <button id="pasteSaveSnippet" class="btn-paste" aria-label="Paste and Save" title="Paste and Save">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+            <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
           </svg>
+          <span>Paste</span>
         </button>
-        <button id="saveSnippet" aria-label="Save" title="Save">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/>
-            <polyline points="17 21 17 13 7 13 7 21"/>
-            <polyline points="7 3 7 8 15 8"/>
+        <button id="saveSnippet" class="btn-save" aria-label="Save" title="Save">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path fill-rule="evenodd" clip-rule="evenodd"
+              d="M18.1716 1C18.702 1 19.2107 1.21071 19.5858 1.58579L22.4142 4.41421C22.7893 4.78929 23 5.29799 23 5.82843V20C23 21.6569 21.6569 23 20 23H4C2.34315 23 1 21.6569 1 20V4C1 2.34315 2.34315 1 4 1H18.1716ZM4 3C3.44772 3 3 3.44772 3 4V20C3 20.5523 3.44772 21 4 21L5 21L5 15C5 13.3431 6.34315 12 8 12L16 12C17.6569 12 19 13.3431 19 15V21H20C20.5523 21 21 20.5523 21 20V6.82843C21 6.29799 20.7893 5.78929 20.4142 5.41421L18.5858 3.58579C18.2107 3.21071 17.702 3 17.1716 3H17V5C17 6.65685 15.6569 8 14 8H10C8.34315 8 7 6.65685 7 5V3H4ZM17 21V15C17 14.4477 16.5523 14 16 14L8 14C7.44772 14 7 14.4477 7 15L7 21L17 21ZM9 3H15V5C15 5.55228 14.5523 6 14 6H10C9.44772 6 9 5.55228 9 5V3Z"
+              fill="currentColor"></path>
           </svg>
         </button>
       </div>
     </div>
 
-    <!-- Filter Row -->
+    <!-- Filter Row — search first, date second, tag filter last (away from tag input above) -->
+    <div class="filter-header" id="filterSectionHeader">
+      <span class="filter-section-title">Filter By:</span>
+    </div>
     <div class="filter-row">
-      <div class="tag-filter-container">
-        <select id="tagFilter" class="tag-filter-select" aria-label="Filter snippets by tag">
-          <option value="all">All Tags</option>
-          <option value="created">Created</option>
-          <option value="closed">Closed</option>
-          <option value="reopened">Reopened</option>
-          <option value="note">Note</option>
-        </select>
-        <span class="select-arrow">
-          <svg viewBox="0 0 24 24" width="18" height="18"><path d="M7 10l5 5 5-5z"/></svg>
-        </span>
+      <!-- Search Filter -->
+      <div class="filter-group search-filter-group">
+        <div class="search-wrapper">
+          <svg class="search-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"></circle>
+            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+          </svg>
+          <input type="search" id="searchSnippets" class="search-input" placeholder="Search..."
+            aria-label="Search snippet content">
+        </div>
       </div>
 
       <!-- Date Filter -->
       <div class="filter-group date-filter-group">
-        <input type="date" id="dateFilter" class="date-filter-input" aria-label="Filter snippets by date" placeholder="Date">
+        <div class="date-wrapper">
+          <svg class="date-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="16" y1="2" x2="16" y2="6"></line>
+            <line x1="8" y1="2" x2="8" y2="6"></line>
+            <line x1="3" y1="10" x2="21" y2="10"></line>
+          </svg>
+          <input type="text" id="dateFilter" class="date-filter-input" aria-label="Filter snippets by date"
+            title="Filter by date" placeholder="Date" readonly>
+          <!-- Custom Calendar Dropdown -->
+          <div id="calendarDropdown" class="calendar-dropdown hidden">
+            <div class="calendar-header">
+              <button id="prevMonthBtn" class="cal-nav-btn" aria-label="Previous Month">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="15 18 9 12 15 6"></polyline>
+                </svg>
+              </button>
+              <span id="currentMonthYear" class="calendar-month-year"></span>
+              <button id="nextMonthBtn" class="cal-nav-btn" aria-label="Next Month">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="9 18 15 12 9 6"></polyline>
+                </svg>
+              </button>
+            </div>
+            <div class="calendar-days-header">
+              <span>Su</span><span>Mo</span><span>Tu</span><span>We</span><span>Th</span><span>Fr</span><span>Sa</span>
+            </div>
+            <div id="calendarGrid" class="calendar-grid"></div>
+            <div class="calendar-footer" id="calendarFooter">
+              <span id="calendarFormatHint" class="calendar-format-hint">Format: DD/MM/YYYY</span>
+              <button id="clearDateBtn" class="calendar-clear-btn hidden">Clear Selection</button>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- Search Filter -->
-      <div class="filter-group search-filter-group">
-        <input type="search" id="searchSnippets" class="search-input" placeholder="Search..." aria-label="Search snippet content">
+      <!-- Tag Filter (placed last — furthest from tag select input to avoid misclicks) -->
+      <div class="tag-filter-container">
+        <div class="custom-dropdown" id="tagFilterContainer">
+          <div class="dropdown-trigger" id="tagFilterTrigger">
+            <span class="selected-tag">All Tags</span>
+            <svg class="dropdown-arrow" viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+              <path d="M7 10l5 5 5-5z" />
+            </svg>
+          </div>
+          <div class="dropdown-menu hidden" id="tagFilterMenu"></div>
+          <input type="hidden" id="tagFilter" value="all">
+        </div>
       </div>
+      <button id="clearAllFiltersBtn" class="clear-all-btn hidden" title="Clear All Filters"
+        aria-label="Clear all filters">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
     </div>
 
     <div id="snippetsList" class="saved-snippets">
       <!-- Snippets will be dynamically inserted here -->
     </div>
   </div>
+
   <!-- Settings Modal -->
   <div id="settingsModal" class="settings-modal" style="display:none;">
     <div class="settings-modal-content">
       <div class="settings-modal-header">
-        <span>Settings</span>
+        <span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"
+            style="vertical-align: middle; margin-right: 6px; opacity: 0.7;">
+            <path
+              d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z" />
+          </svg>
+          Settings
+        </span>
         <button id="closeSettings" aria-label="Close settings">&times;</button>
       </div>
       <div class="settings-modal-body">
-        <div class="counters-section">
+        <!-- Counters Section -->
+        <div class="counters-section settings-section">
           <div class="section-header">
-            <h3>Counters</h3>
+            <h3>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                style="vertical-align: middle; margin-right: 4px;">
+                <rect x="4" y="4" width="16" height="16" rx="2" />
+                <line x1="8" y1="12" x2="16" y2="12" />
+                <line x1="12" y1="8" x2="12" y2="16" />
+              </svg>
+              Counters
+            </h3>
             <button id="addCounterBtn" class="add-counter-btn" title="Add new counter">
               <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
                 <line x1="12" y1="5" x2="12" y2="19"></line>
@@ -160,22 +249,71 @@
             <!-- Additional counters will be listed here -->
           </div>
         </div>
-        <hr>
-        
 
-        
-        <div class="theme-select-container">
-        <label for="themeSelect">Theme:</label>
-        <select id="themeSelect">
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
-        </select>
+        <div class="settings-divider"></div>
+
+        <!-- Theme Section -->
+        <div class="theme-section settings-section">
+          <h3>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+              style="vertical-align: middle; margin-right: 4px;">
+              <circle cx="12" cy="12" r="5" />
+              <line x1="12" y1="1" x2="12" y2="3" />
+              <line x1="12" y1="21" x2="12" y2="23" />
+              <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+              <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+              <line x1="1" y1="12" x2="3" y2="12" />
+              <line x1="21" y1="12" x2="23" y2="12" />
+              <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+              <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+            </svg>
+            Appearance
+          </h3>
+          <div class="theme-toggle-container">
+            <span class="theme-label">Theme</span>
+            <div class="theme-switcher">
+              <button id="themeLightBtn" class="theme-option active" data-theme="light" title="Light mode">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="5" />
+                  <line x1="12" y1="1" x2="12" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="23" />
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                  <line x1="1" y1="12" x2="3" y2="12" />
+                  <line x1="21" y1="12" x2="23" y2="12" />
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+                Light
+              </button>
+              <button id="themeDarkBtn" class="theme-option" data-theme="dark" title="Dark mode">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+                Dark
+              </button>
+            </div>
+          </div>
+          <!-- Hidden select for backward compat with JS -->
+          <select id="themeSelect" style="display:none;">
+            <option value="light">Light</option>
+            <option value="dark">Dark</option>
+          </select>
         </div>
-        <hr>
-        
+
+        <div class="settings-divider"></div>
+
         <!-- Data Management Section -->
-        <div class="data-management-section">
-          <h3>Data Management</h3>
+        <div class="data-management-section settings-section">
+          <h3>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+              style="vertical-align: middle; margin-right: 4px;">
+              <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
+              <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path>
+              <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path>
+            </svg>
+            Data Management
+          </h3>
           <div class="data-buttons">
             <button id="exportDataBtn" class="data-btn export-btn" title="Export all data">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -183,7 +321,7 @@
                 <polyline points="17 8 12 3 7 8"></polyline>
                 <line x1="12" y1="3" x2="12" y2="15"></line>
               </svg>
-              Export Data
+              Export
             </button>
             <button id="importDataBtn" class="data-btn import-btn" title="Import data">
               <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
@@ -191,82 +329,250 @@
                 <polyline points="7 10 12 15 17 10"></polyline>
                 <line x1="12" y1="15" x2="12" y2="3"></line>
               </svg>
-              Import Data
+              Import
+            </button>
+            <button id="shareExtensionBtn" class="data-btn" title="Share QuickClip Pro">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+              Share App
             </button>
           </div>
           <input type="file" id="importFileInput" accept=".json" style="display: none;">
         </div>
-        <hr>
-        
-        <div class="settings-toggles">
-          <label><input type="checkbox" id="toggleTimestamp" checked> Show Timestamp on Snippet</label><br>
-          <label><input type="checkbox" id="toggleDateFilter"> Show Date Filter</label><br>
-          <label><input type="checkbox" id="toggleTagFilter" checked> Show Tag Filter</label><br>
-          <label><input type="checkbox" id="toggleSearchFilter" checked> Show Search Filter</label><br>
-          <label><input type="checkbox" id="toggleSnippetTags" checked> Show Tags on Snippet</label><br>
-          <label><input type="checkbox" id="toggleDoubleClickEdit" checked> Double Click Snippet to Edit</label>
+
+        <div class="settings-divider"></div>
+
+        <!-- Display Options -->
+        <div class="display-options-section settings-section">
+          <h3>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+              style="vertical-align: middle; margin-right: 4px;">
+              <rect x="3" y="3" width="7" height="7" />
+              <rect x="14" y="3" width="7" height="7" />
+              <rect x="14" y="14" width="7" height="7" />
+              <rect x="3" y="14" width="7" height="7" />
+            </svg>
+            Display Options
+          </h3>
+          <div class="settings-toggles">
+            <label class="toggle-label">
+              <input type="checkbox" id="toggleTimestamp" checked>
+              <span class="toggle-text">Show Timestamp on Snippet</span>
+            </label>
+            <label class="toggle-label">
+              <input type="checkbox" id="toggleDateFilter" checked>
+              <span class="toggle-text">Show Date Filter</span>
+            </label>
+            <label class="toggle-label">
+              <input type="checkbox" id="toggleTagFilter" checked>
+              <span class="toggle-text">Show Tag Filter</span>
+            </label>
+            <label class="toggle-label">
+              <input type="checkbox" id="toggleSearchFilter" checked>
+              <span class="toggle-text">Show Search Filter</span>
+            </label>
+            <label class="toggle-label">
+              <input type="checkbox" id="toggleSnippetTags" checked>
+              <span class="toggle-text">Show Tags on Snippet</span>
+            </label>
+            <label class="toggle-label">
+              <input type="checkbox" id="toggleDoubleClickEdit" checked>
+              <span class="toggle-text">Double-Click to Edit Snippet</span>
+            </label>
+          </div>
         </div>
-        <hr>
+
+        <div class="settings-divider"></div>
+
         <!-- Tag Management Section -->
-        <div class="tags-section">
+        <div class="tags-section settings-section">
           <div class="section-header">
-            <h3>Tags</h3>
+            <h3>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                style="vertical-align: middle; margin-right: 4px;">
+                <path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z" />
+                <line x1="7" y1="7" x2="7.01" y2="7" />
+              </svg>
+              Tags
+            </h3>
           </div>
           <div id="tagsList" class="tags-list">
             <!-- Tags will be dynamically added here -->
           </div>
           <div class="tag-info-text">
-            <p><small>You can rename tags and activate/deactivate them as needed. Tags that are deactivated won't show in the dropdown menu but will preserve their data.</small></p>
+            <p><small>Rename tags and activate/deactivate them as needed. Deactivated tags won't appear in dropdowns but
+                preserve their data.</small></p>
           </div>
         </div>
-        <hr>
-        <!-- Know More Section -->
-        <div class="know-more-section">
-          <div class="section-header">
-            <h3>Know More</h3>
-          </div>
+
+        <div class="settings-divider"></div>
+
+        <!-- Explore More Tools Section -->
+        <div class="explore-tools-section settings-section">
+          <h3>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+              style="vertical-align: middle; margin-right: 4px;">
+              <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
+            </svg>
+            Explore More Tools
+          </h3>
           <ul class="know-more-list">
             <li>
-              <a href="https://www.linkedin.com/in/akasumitlamba/" target="_blank" rel="noopener" class="know-more-link">
-                <!-- <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="vertical-align: middle; margin-right: 6px;">
-                  <path d="M19 0h-14c-2.76 0-5 2.24-5 5v14c0 2.76 2.24 5 5 5h14c2.76 0 5-2.24 5-5v-14c0-2.76-2.24-5-5-5zm-11 19h-3v-9h3v9zm-1.5-10.28c-.97 0-1.75-.79-1.75-1.75s.78-1.75 1.75-1.75 1.75.79 1.75 1.75-.78 1.75-1.75 1.75zm13.5 10.28h-3v-4.5c0-1.07-.93-2-2-2s-2 .93-2 2v4.5h-3v-9h3v1.22c.41-.63 1.36-1.22 2.25-1.22 1.93 0 3.75 1.57 3.75 4.25v4.75z"/>
-                </svg> -->
-                LinkedIn- akasumitlamba
+              <a href="https://chromewebstore.google.com/detail/mjdfflpebcmmpipdeeianpjfolmhkmna" target="_blank"
+                rel="noopener" class="know-more-link">
+                <!-- Puzzle Piece Icon (User Provided) -->
+                <svg viewBox="0 0 512 512" width="16" height="16" fill="currentColor" class="icon-quickclip"
+                  style="flex-shrink:0; margin-top: 2px;">
+                  <path
+                    d="M432.531,229.906c-9.906,0-19.125,2.594-27.313,6.375v-51.656c0-42.938-34.922-77.875-77.859-77.875h-51.641 c3.781-8.156,6.375-17.375,6.375-27.281C282.094,35.656,246.438,0,202.625,0c-43.828,0-79.484,35.656-79.484,79.469 c0,9.906,2.594,19.125,6.359,27.281H77.875C34.938,106.75,0,141.688,0,184.625l0.047,23.828H0l0.078,33.781 c0,23.031,8.578,36.828,12.641,42.063c12.219,15.797,27.094,18.172,34.891,18.172c11.953,0,23.141-4.953,33.203-14.703l0.906-0.422 l1.516-2.141c1.391-1.359,6.328-5.484,14.016-5.5c16.344,0,29.656,13.297,29.656,29.672c0,16.344-13.313,29.656-29.672,29.656 c-7.672,0-12.609-4.125-14-5.5l-1.516-2.141l-0.906-0.422c-10.063-9.75-21.25-14.703-33.203-14.703 c-7.797,0.016-22.672,2.375-34.891,18.172c-4.063,5.25-12.641,19.031-12.641,42.063L0,410.281h0.047L0,434.063 C0,477.063,34.938,512,77.875,512h54.563v-0.063l3.047-0.016c23.016,0,36.828-8.563,42.063-12.641 c15.797-12.219,18.172-27.094,18.172-34.891c0-11.953-4.953-23.141-14.688-33.203l-0.438-0.906l-2.125-1.516 c-1.375-1.391-5.516-6.328-5.516-14.016c0-16.344,13.313-29.656,29.672-29.656c16.344,0,29.656,13.313,29.656,29.656 c0,7.688-4.141,12.625-5.5,14.016l-2.125,1.516l-0.438,0.906c-9.75,10.063-14.703,21.25-14.703,33.203 c0,7.797,2.359,22.672,18.172,34.891c5.25,4.078,19.031,12.641,42.063,12.641l17,0.047V512h40.609 c42.938,0,77.859-34.938,77.859-77.875v-51.641c8.188,3.766,17.406,6.375,27.313,6.375c43.813,0,79.469-35.656,79.469-79.484 C512,265.563,476.344,229.906,432.531,229.906z M432.531,356.375c-19.031,0-37.469-22.063-37.469-22.063 c-3.344-3.203-6.391-4.813-9.25-4.813c-2.844,0-5.469,1.609-7.938,4.813c0,0-5.125,5.891-5.125,19.313v80.5 c0,25.063-20.313,45.391-45.391,45.391h-23.813l-33.797-0.078c-15.438,0-22.188-5.875-22.188-5.875 c-3.703-2.859-5.563-5.875-5.563-9.172c0-3.266,1.859-6.797,5.563-10.594c0,0,17.219-13.891,17.219-39.047 c0-34.313-27.844-62.156-62.156-62.156c-34.344,0-62.156,27.844-62.156,62.156c0,25.156,17.219,39.047,17.219,39.047 c3.688,3.797,5.531,7.328,5.531,10.594c0,3.297-1.844,6.313-5.531,9.172c0,0-6.766,5.875-22.203,5.875l-33.797,0.078H77.875 c-25.063,0-45.375-20.328-45.375-45.391l0.094-48.203h-0.047l0.016-9.422c0-15.422,5.875-22.203,5.875-22.203 c2.859-3.703,5.875-5.531,9.156-5.531s6.813,1.828,10.609,5.531c0,0,13.891,17.234,39.047,17.234 c34.313-0.016,62.156-27.844,62.156-62.156c-0.016-34.344-27.844-62.156-62.156-62.156c-25.156,0-39.047,17.219-39.047,17.219 c-3.797,3.688-7.328,5.531-10.609,5.531s-6.297-1.828-9.156-5.531c0,0-5.875-6.781-5.875-22.203v-1.156h0.031L32.5,184.625 c0-25.063,20.313-45.375,45.375-45.375h80.5c13.422,0,19.313-5.125,19.313-5.125c6.422-4.938,6.422-10.531,0-17.188 c0,0-22.063-18.438-22.063-37.469c0-25.953,21.047-46.984,47-46.984c25.938,0,46.984,21.031,46.984,46.984 c0,19.031-22.047,37.469-22.047,37.469c-6.438,6.656-6.438,12.25,0,17.188c0,0,5.875,5.125,19.281,5.125h80.516 c25.078,0,45.391,20.313,45.391,45.375v80.516c0,13.422,5.125,19.297,5.125,19.297c2.469,3.219,5.094,4.813,7.938,4.813 c2.859,0,5.906-1.594,9.25-4.813c0,0,18.438-22.047,37.469-22.047c25.938,0,46.969,21.047,46.969,46.984 C479.5,335.344,458.469,356.375,432.531,356.375z">
+                  </path>
+                </svg>
+                <div class="tool-info">
+                  <span class="tool-name">QuickClip</span>
+                  <span class="tool-desc">A browser extension to manage text and links easily within the reach of user
+                    and to save time.</span>
+                </div>
+                <!-- External Link Icon -->
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"
+                  class="external-link-icon">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+              </a>
+            </li>
+            <li>
+              <a href="https://akasumitlamba.github.io/WWRecorder/" target="_blank" rel="noopener"
+                class="know-more-link">
+                <!-- Toolbox Icon (Rose Color) -->
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                  class="icon-wwrecorder" style="flex-shrink:0; margin-top: 2px;">
+                  <path d="M22 19V9a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2z"></path>
+                  <path d="M16 7V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3"></path>
+                  <line x1="8" y1="12" x2="16" y2="12"></line>
+                  <line x1="12" y1="12" x2="12" y2="17"></line>
+                </svg>
+                <div class="tool-info">
+                  <span class="tool-name">WWRecorder</span>
+                  <span class="tool-desc">A lightweight, high-performance screen recorder for Windows</span>
+                </div>
+                <!-- External Link Icon -->
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"
+                  class="external-link-icon">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+              </a>
+            </li>
+            <li>
+              <a href="https://akasumitlamba.github.io/Stype/" target="_blank" rel="noopener" class="know-more-link">
+                <!-- Toolbox Icon (Amber Color) -->
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                  class="icon-stype" style="flex-shrink:0; margin-top: 2px;">
+                  <path d="M22 19V9a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2z"></path>
+                  <path d="M16 7V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3"></path>
+                  <line x1="8" y1="12" x2="16" y2="12"></line>
+                  <line x1="12" y1="12" x2="12" y2="17"></line>
+                </svg>
+                <div class="tool-info">
+                  <span class="tool-name">Stype</span>
+                  <span class="tool-desc">Converts speech to text using AI with correct punctuation and
+                    capitalization.</span>
+                </div>
+                <!-- External Link Icon -->
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"
+                  class="external-link-icon">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+              </a>
+            </li>
+            <li>
+              <a href="https://github.com/akasumitlamba/KeyCast" target="_blank" rel="noopener" class="know-more-link">
+                <!-- Toolbox Icon (Sky Blue Color) -->
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                  class="icon-keycast" style="flex-shrink:0; margin-top: 2px;">
+                  <path d="M22 19V9a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2z"></path>
+                  <path d="M16 7V4a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v3"></path>
+                  <line x1="8" y1="12" x2="16" y2="12"></line>
+                  <line x1="12" y1="12" x2="12" y2="17"></line>
+                </svg>
+                <div class="tool-info">
+                  <span class="tool-name">Keycast</span>
+                  <span class="tool-desc">Show your keyboard and mouse inputs on screen for screen recording and screen
+                    sharing.</span>
+                </div>
+                <!-- External Link Icon -->
+                <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"
+                  class="external-link-icon">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path>
+                  <polyline points="15 3 21 3 21 9"></polyline>
+                  <line x1="10" y1="14" x2="21" y2="3"></line>
+                </svg>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <div class="settings-divider"></div>
+
+        <!-- Connect Section -->
+        <div class="connect-section settings-section">
+          <h3>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+              style="vertical-align: middle; margin-right: 4px;">
+              <circle cx="18" cy="5" r="3"></circle>
+              <circle cx="6" cy="12" r="3"></circle>
+              <circle cx="18" cy="19" r="3"></circle>
+              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+            Connect
+          </h3>
+          <ul class="know-more-list">
+            <li>
+              <a href="https://www.linkedin.com/in/akasumitlamba/" target="_blank" rel="noopener"
+                class="know-more-link">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="flex-shrink:0;">
+                  <path
+                    d="M19 0h-14c-2.76 0-5 2.24-5 5v14c0 2.76 2.24 5 5 5h14c2.76 0 5-2.24 5-5v-14c0-2.76-2.24-5-5-5zm-11 19h-3v-9h3v9zm-1.5-10.28c-.97 0-1.75-.79-1.75-1.75s.78-1.75 1.75-1.75 1.75.79 1.75 1.75-.78 1.75-1.75 1.75zm13.5 10.28h-3v-4.5c0-1.07-.93-2-2-2s-2 .93-2 2v4.5h-3v-9h3v1.22c.41-.63 1.36-1.22 2.25-1.22 1.93 0 3.75 1.57 3.75 4.25v4.75z" />
+                </svg>
+                LinkedIn: akasumitlamba
               </a>
             </li>
             <li>
               <a href="https://github.com/akasumitlamba" target="_blank" rel="noopener" class="know-more-link">
-                <!-- <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="vertical-align: middle; margin-right: 6px;">
-                  <path d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.93.58.11.79-.25.79-.56v-2.02c-3.2.7-3.87-1.54-3.87-1.54-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.78 2.73 1.27 3.4.97.11-.75.41-1.27.75-1.56-2.56-.29-5.26-1.28-5.26-5.7 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.18 1.18a11.1 11.1 0 012.9 0c2.21-1.49 3.18-1.18 3.18-1.18.63 1.58.23 2.75.11 3.04.74.8 1.19 1.83 1.19 3.09 0 4.43-2.7 5.41-5.27 5.7.42.36.8 1.09.8 2.2v3.26c0 .31.21.67.8.56C20.71 21.39 24 17.08 24 12c0-6.27-5.23-11.5-12-11.5z"/>
-                </svg> -->
-                GitHub- akasumitlamba
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="flex-shrink:0;">
+                  <path
+                    d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.93.58.11.79-.25.79-.56v-2.02c-3.2.7-3.87-1.54-3.87-1.54-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.78 2.73 1.27 3.4.97.11-.75.41-1.27.75-1.56-2.56-.29-5.26-1.28-5.26-5.7 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.18 1.18a11.1 11.1 0 012.9 0c2.21-1.49 3.18-1.18 3.18-1.18.63 1.58.23 2.75.11 3.04.74.8 1.19 1.83 1.19 3.09 0 4.43-2.7 5.41-5.27 5.7.42.36.8 1.09.8 2.2v3.26c0 .31.21.67.8.56C20.71 21.39 24 17.08 24 12c0-6.27-5.23-11.5-12-11.5z" />
+                </svg>
+                GitHub: akasumitlamba
               </a>
             </li>
             <li>
-              <a href="https://chromewebstore.google.com/detail/mjdfflpebcmmpipdeeianpjfolmhkmna?utm_source=item-share-cb" target="_blank" rel="noopener" class="know-more-link">
-                <!-- <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="vertical-align: middle; margin-right: 6px;">
-                  <circle cx="12" cy="12" r="10"/>
-                  <path d="M12 7v5l3 3"/>
-                </svg> -->
-                Try QuickClip Extension
+              <a href="https://github.com/akasumitlamba/QuickClipPro/blob/main/PRIVACY.md" target="_blank"
+                rel="noopener" class="know-more-link">
+                <!-- Shield Icon -->
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                  style="flex-shrink:0;">
+                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                </svg>
+                Privacy Policy
               </a>
             </li>
-            <br>
-            <li>
-              <a href="https://github.com/akasumitlamba/QuickClipPro/blob/main/PRIVACY.md" target="_blank" rel="noopener" class="know-more-link">
-                <!-- <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" style="vertical-align: middle; margin-right: 6px;">
-                  <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm0-4h-2V7h2v8z"/>
-                </svg> -->
-                QuickClip Privacy Policy
-              </a>
-            </li>
-            <!-- Add more links as needed -->
           </ul>
         </div>
-        <!-- ...existing code... -->
       </div>
     </div>
   </div>
   <script src="popup.js"></script>
 </body>
+
 </html>
