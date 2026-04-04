@@ -1,5 +1,5 @@
 // Initialize storage with default values when the extension is installed
-chrome.runtime.onInstalled.addListener(function() {
+chrome.runtime.onInstalled.addListener(function(details) {
   chrome.storage.local.get(['counter', 'snippets'], function(result) {
     if (result.counter === undefined) {
       chrome.storage.local.set({ counter: 0 });
@@ -13,4 +13,11 @@ chrome.runtime.onInstalled.addListener(function() {
   chrome.sidePanel
     .setPanelBehavior({ openPanelOnActionClick: true })
     .catch((error) => console.error("Error setting side panel behavior:", error));
+
+  // Open onboarding page only on first install (not on updates).
+  if (details && details.reason === 'install') {
+    chrome.tabs.create({
+      url: 'https://akasumitlamba.github.io/QuickClipPro/'
+    });
+  }
 });
