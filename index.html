@@ -3,34 +3,38 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>QuickClip Pro</title>
+  <title>QuickClip Pro — Sidebar Clipboard Manager</title>
   <meta name="description" content="A sidebar clipboard manager for Chromium browsers. Tags, images, counters, search and more.">
+  <link rel="icon" type="image/png" href="icons/quickclippro.png">
 
-  <!-- Page fonts (NOT Inter - that's the extension's font) -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Syne:wght@400;500;600;700;800&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 
-  <!-- Extension CSS - used ONLY inside .ext-frame demo boxes -->
-  <link rel="stylesheet" href="styles.css">
+  <!-- Vanilla Motion (Framer Motion engine, no build step needed) -->
+  <script src="https://cdn.jsdelivr.net/npm/motion@11.11.13/dist/motion.js"></script>
 
   <style>
-    /* ════════════════════════════════════
-       PAGE DESIGN SYSTEM - scoped to #page
-       Does NOT interfere with .ext-frame
-    ════════════════════════════════════ */
+    /* ══════════════════════════════════
+       DESIGN TOKENS
+    ══════════════════════════════════ */
     :root {
-      --bg:        #0C0C0E;
-      --surface:   #141417;
-      --card:      #1B1B1F;
-      --border:    rgba(255,255,255,0.07);
-      --border2:   rgba(255,255,255,0.13);
-      --text:      #F0EEE8;
-      --text2:     #9A9A9F;
-      --text3:     #4E4E54;
-      --gold:      #D4A847;
-      --gold2:     #EFC96A;
-      --gold-dim:  rgba(212,168,71,0.12);
+      --bg:        #09090B;
+      --surface:   #0F0F12;
+      --card:      #16161A;
+      --card2:     #1C1C22;
+      --border:    rgba(255,255,255,0.055);
+      --border2:   rgba(255,255,255,0.11);
+      --border3:   rgba(255,255,255,0.18);
+      --text:      #F0EDE6;
+      --text2:     #B0B0B8;
+      --text3:     #707078;
+      --gold:      #C9963A;
+      --gold2:     #E8B85A;
+      --gold3:     #F5CC7A;
+      --gold-dim:  rgba(201,150,58,0.1);
+      --gold-glow: rgba(201,150,58,0.18);
+      --teal:      #0D9488;
       --ease:      cubic-bezier(0.22, 1, 0.36, 1);
       --ff-d:      'Instrument Serif', Georgia, serif;
       --ff-u:      'Syne', sans-serif;
@@ -38,416 +42,832 @@
     }
 
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
+    html { scroll-behavior: smooth; font-size: 16px; }
 
-    /* Override extension styles.css body rule completely */
     body {
-      width: auto !important; height: auto !important;
-      overflow: visible !important; overflow-x: hidden !important;
-      font-family: var(--ff-u) !important;
-      font-size: 16px !important;
-      background: var(--bg) !important;
-      color: var(--text) !important;
-      line-height: 1.65 !important;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--ff-u);
+      line-height: 1.65;
+      overflow-x: hidden;
+      width: auto !important;
+      height: auto !important;
     }
 
-    /* grain */
-    body::after {
-      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
-      opacity: 0.03;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+    /* Scrollbar */
+    ::-webkit-scrollbar { width: 3px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--border3); border-radius: 2px; }
+
+    /* ── Grain overlay ── */
+    body::before {
+      content: '';
+      position: fixed; inset: 0;
+      pointer-events: none; z-index: 1000;
+      opacity: 0.028;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)'/%3E%3C/svg%3E");
+    }
+
+    /* ── Grid pattern for hero ── */
+    .grid-bg {
+      position: absolute; inset: 0; pointer-events: none;
+      background-image:
+        linear-gradient(var(--border) 1px, transparent 1px),
+        linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 72px 72px;
+      mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 40%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 70% 60% at 50% 50%, black 40%, transparent 100%);
     }
 
     /* ── NAV ── */
     #pnav {
       position: fixed; top: 0; left: 0; right: 0; z-index: 900;
-      height: 58px; display: flex; align-items: center;
-      justify-content: space-between;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
       padding: 0 clamp(1.25rem, 4vw, 3.5rem);
-      background: rgba(12,12,14,0.88);
-      backdrop-filter: blur(18px);
+      background: rgba(9,9,11,0.75);
+      backdrop-filter: blur(24px) saturate(1.4);
+      -webkit-backdrop-filter: blur(24px) saturate(1.4);
       border-bottom: 1px solid var(--border);
+      transition: background 0.4s var(--ease), border-color 0.4s;
     }
-    .nl { display: flex; align-items: center; gap: 8px; text-decoration: none; }
-    .nl img { width: 28px; height: 28px; border-radius: 7px; object-fit: contain; }
+    #pnav.scrolled {
+      background: rgba(9,9,11,0.94);
+      border-color: var(--border2);
+    }
+
+    .nl {
+      display: flex; align-items: center; gap: 9px;
+      text-decoration: none;
+    }
+    .nl-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      background: var(--gold-dim);
+      border: 1px solid rgba(201,150,58,0.22);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem;
+      flex-shrink: 0;
+    }
     .nl-brand {
-      font-family: var(--ff-u); font-weight: 700; font-size: 1.1rem;
-      color: var(--text); letter-spacing: -0.01em;
+      font-family: var(--ff-u); font-weight: 700; font-size: 1.05rem;
+      color: var(--text); letter-spacing: -0.02em;
     }
-    .nl-brand em { font-style: normal; color: var(--gold); }
-    .nav-list { display: flex; align-items: center; gap: 2px; list-style: none; }
+    .nl-brand em { font-style: normal; color: var(--gold2); }
+
+    .nav-list { display: flex; align-items: center; gap: 1px; list-style: none; }
     .nav-list a {
-      font-family: var(--ff-m); font-size: 0.7rem; letter-spacing: 0.09em;
+      font-family: var(--ff-m); font-size: 0.65rem; letter-spacing: 0.09em;
       text-transform: uppercase; color: var(--text2); text-decoration: none;
-      padding: 0.35em 0.75em; border-radius: 4px;
+      padding: 0.35em 0.8em; border-radius: 5px;
       transition: color 0.2s, background 0.2s;
     }
     .nav-list a:hover { color: var(--text); background: rgba(255,255,255,0.05); }
     .nav-cta {
-      background: var(--gold) !important; color: #000 !important;
-      font-weight: 600; margin-left: 0.4rem;
+      background: var(--gold) !important;
+      color: #000 !important; font-weight: 700;
+      margin-left: 0.5rem !important;
+      padding: 0.38em 1em !important;
+      transition: background 0.2s, transform 0.2s !important;
     }
-    .nav-cta:hover { background: var(--gold2) !important; transform: translateY(-1px); }
+    .nav-cta:hover { background: var(--gold2) !important; transform: translateY(-1px) !important; }
+    .nav-cta .icon-ext {
+      width: 11px;
+      height: 11px;
+      margin-left: 0.2em;
+      vertical-align: -0.12em;
+      display: inline-block;
+      stroke: currentColor;
+      fill: none;
+    }
+
+    /* scroll progress */
     #spbar {
-      position: fixed; top: 58px; left: 0; z-index: 899;
-      height: 2px; width: 100%;
-      background: linear-gradient(90deg, var(--gold), #14B8A6);
+      position: fixed; top: 60px; left: 0; right: 0; z-index: 899;
+      height: 2px;
+      background: linear-gradient(90deg, var(--gold), var(--teal));
       transform-origin: left; transform: scaleX(0);
+      transition: transform 0.05s linear;
     }
 
     /* ── HERO ── */
     #hero {
-      min-height: 100vh; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; text-align: center;
-      padding: 120px clamp(1.25rem, 6vw, 5rem) 80px;
-      position: relative; z-index: 1; overflow: hidden;
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 130px clamp(1.25rem, 6vw, 6rem) 90px;
+      position: relative; overflow: hidden;
     }
-    .h-glow {
-      position: absolute; top: -100px; left: 50%; transform: translateX(-50%);
-      width: 800px; height: 500px; pointer-events: none;
-      background: radial-gradient(ellipse at 50% 0%, rgba(212,168,71,0.11) 0%, transparent 65%);
+
+    .hero-orb {
+      position: absolute; top: -200px; left: 50%;
+      transform: translateX(-50%);
+      width: 1000px; height: 700px;
+      background: radial-gradient(ellipse at 50% 0%,
+        rgba(201,150,58,0.14) 0%,
+        rgba(201,150,58,0.05) 40%,
+        transparent 70%);
+      pointer-events: none;
+      animation: orb-float 8s ease-in-out infinite;
     }
+    @keyframes orb-float {
+      0%, 100% { transform: translateX(-50%) translateY(0px) scale(1); }
+      33%       { transform: translateX(-50%) translateY(-18px) scale(1.02); }
+      66%       { transform: translateX(-50%) translateY(8px) scale(0.99); }
+    }
+
+    .hero-orb2 {
+      position: absolute; bottom: -100px; right: -200px;
+      width: 600px; height: 400px;
+      background: radial-gradient(ellipse at 80% 80%,
+        rgba(13,148,136,0.07) 0%, transparent 65%);
+      pointer-events: none;
+      animation: orb-float2 11s ease-in-out infinite;
+    }
+    @keyframes orb-float2 {
+      0%, 100% { transform: translateY(0px); }
+      50%       { transform: translateY(-24px); }
+    }
+
     .h-kicker {
-      font-family: var(--ff-m); font-size: 0.62rem; letter-spacing: 0.22em;
-      text-transform: uppercase; color: var(--gold); margin-bottom: 1.4rem;
-      opacity: 0; animation: au 0.8s 0.05s var(--ease) forwards;
+      font-family: var(--ff-m); font-size: 0.6rem;
+      letter-spacing: 0.26em; text-transform: uppercase;
+      color: var(--gold2); margin-bottom: 1.5rem;
+      display: flex; align-items: center; gap: 0.6rem;
+      justify-content: center;
     }
+    .h-kicker::before, .h-kicker::after {
+      content: ''; width: 28px; height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold));
+    }
+    .h-kicker::after { background: linear-gradient(90deg, var(--gold), transparent); }
+
     .h-h1 {
-      font-family: var(--ff-d); font-size: clamp(3rem, 8.5vw, 7.5rem);
+      font-family: var(--ff-d);
+      font-size: clamp(2.8rem, 8vw, 7.2rem);
       font-weight: 400; line-height: 1.04; letter-spacing: -0.025em;
-      color: var(--text);
-      opacity: 0; animation: au 0.9s 0.18s var(--ease) forwards;
+      color: var(--text); max-width: 1000px;
+      position: relative; z-index: 2;
     }
-    .h-h1 em { font-style: italic; color: var(--gold); }
+    .h-h1 em { font-style: italic; color: var(--gold2); }
+
     .h-sub {
-      font-size: 1.05rem; color: var(--text2); max-width: 480px;
-      margin: 1.4rem auto 0;
-      opacity: 0; animation: au 0.9s 0.34s var(--ease) forwards;
+      font-size: clamp(0.95rem, 1.5vw, 1.1rem);
+      color: var(--text2); max-width: 500px;
+      margin: 1.6rem auto 0; line-height: 1.7;
     }
+
     .h-btns {
-      display: flex; gap: 0.75rem; flex-wrap: wrap; justify-content: center;
-      margin-top: 2.4rem;
-      opacity: 0; animation: au 0.9s 0.48s var(--ease) forwards;
+      display: flex; gap: 0.75rem; flex-wrap: wrap;
+      justify-content: center; margin-top: 2.6rem;
     }
+
+    /* Stats bar */
+    .h-stats {
+      display: flex; gap: 3.5rem;
+      margin-top: 4rem; padding-top: 2rem;
+      border-top: 1px solid var(--border2);
+      position: relative; z-index: 2;
+    }
+    .h-stat { text-align: center; }
+    .h-stat-val {
+      font-family: var(--ff-d); font-style: italic;
+      font-size: 2.2rem; color: var(--gold2);
+      line-height: 1;
+    }
+    .h-stat-lbl {
+      font-family: var(--ff-m); font-size: 0.52rem;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--text3); margin-top: 5px;
+    }
+
+    .h-rule {
+      position: absolute; bottom: 0; left: 6%; right: 6%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border2), transparent);
+    }
+
+    /* ── BUTTONS ── */
     .btn {
       display: inline-flex; align-items: center; gap: 0.45rem;
-      padding: 0.7em 1.6em; font-family: var(--ff-m);
-      font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase;
-      text-decoration: none; border-radius: 4px; cursor: pointer;
-      border: 1.5px solid transparent; transition: all 0.22s var(--ease);
+      padding: 0.72em 1.65em;
+      font-family: var(--ff-m); font-size: 0.62rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      text-decoration: none; border-radius: 5px;
+      cursor: pointer; border: 1.5px solid transparent;
+      font-weight: 600;
+      transition: all 0.22s var(--ease);
+      position: relative; overflow: hidden;
     }
-    .btn-gold { background: var(--gold); color: #000; border-color: var(--gold); }
-    .btn-gold:hover { background: var(--gold2); border-color: var(--gold2); transform: translateY(-2px); }
-    .btn-ghost { background: transparent; color: var(--text); border-color: var(--border2); }
-    .btn-ghost:hover { border-color: rgba(255,255,255,0.28); transform: translateY(-2px); }
-    .h-rule {
-      position: absolute; bottom: 0; left: 8%; right: 8%;
-      height: 1px; background: linear-gradient(90deg, transparent, var(--border2), transparent);
+    .btn::after {
+      content: ''; position: absolute; inset: 0;
+      background: rgba(255,255,255,0); transition: background 0.2s;
+    }
+    .btn:hover::after { background: rgba(255,255,255,0.06); }
+
+    .btn-gold {
+      background: var(--gold); color: #000;
+      border-color: var(--gold);
+      box-shadow: 0 0 0 0 rgba(201,150,58,0);
+      transition: all 0.22s var(--ease), box-shadow 0.4s;
+    }
+    .btn-gold:hover {
+      background: var(--gold2); border-color: var(--gold2);
+      transform: translateY(-2px);
+      box-shadow: 0 8px 28px rgba(201,150,58,0.28);
+    }
+    .btn-ghost {
+      background: transparent; color: var(--text);
+      border-color: var(--border2);
+    }
+    .btn-ghost:hover {
+      border-color: var(--border3);
+      transform: translateY(-2px);
     }
 
     /* ── MARQUEE ── */
     .mqwrap {
-      overflow: hidden; border-top: 1px solid var(--border);
+      overflow: hidden;
+      border-top: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
-      background: var(--surface); padding: 0.55rem 0;
-      position: relative; z-index: 1;
+      background: var(--surface); padding: 0.62rem 0;
+      position: relative; z-index: 2;
     }
+    .mqwrap::before, .mqwrap::after {
+      content: ''; position: absolute; top: 0; bottom: 0; width: 100px;
+      z-index: 2; pointer-events: none;
+    }
+    .mqwrap::before { left: 0; background: linear-gradient(90deg, var(--surface), transparent); }
+    .mqwrap::after  { right: 0; background: linear-gradient(-90deg, var(--surface), transparent); }
+
     .mqtrack {
       display: flex; width: max-content;
-      animation: mqs 28s linear infinite;
+      animation: mqs 30s linear infinite;
     }
     .mqtrack:hover { animation-play-state: paused; }
     .mqitem {
-      font-family: var(--ff-m); font-size: 0.75rem;
+      font-family: var(--ff-m); font-size: 0.68rem;
       letter-spacing: 0.18em; text-transform: uppercase;
-      color: var(--text3); padding: 0 2.5rem; white-space: nowrap;
+      color: var(--text3); padding: 0 2rem; white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
     }
-    .mqitem b { color: var(--gold); font-weight: 400; margin-right: 2.5rem; }
+    .mqitem .mq-dot {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gold);
+      margin-right: 1.8rem;
+      flex-shrink: 0;
+    }
+    .mq-dot svg { display: block; }
     @keyframes mqs {
       from { transform: translateX(0); }
       to   { transform: translateX(-50%); }
     }
 
-    /* ── SHARED SECTION LAYOUT ── */
-    .psec { position: relative; z-index: 1; }
+    /* ── SHARED SECTIONS ── */
+    .psec { position: relative; z-index: 2; }
     .pin {
-      max-width: 1120px; margin: 0 auto;
-      padding: 6rem clamp(1.25rem, 5vw, 4rem);
+      width: min(100%, 1480px);
+      max-width: 1480px; margin: 0 auto;
+      padding: 7rem clamp(1.25rem, 5vw, 5rem);
     }
+
     .eyebrow {
-      font-family: var(--ff-m); font-size: 0.58rem; letter-spacing: 0.22em;
-      text-transform: uppercase; color: var(--gold); margin-bottom: 0.8rem;
+      font-family: var(--ff-m); font-size: 0.56rem;
+      letter-spacing: 0.26em; text-transform: uppercase;
+      color: var(--gold2); margin-bottom: 0.85rem;
+      display: flex; align-items: center; gap: 0.5rem;
+    }
+    .eyebrow::before {
+      content: ''; display: inline-block;
+      width: 18px; height: 1px;
+      background: var(--gold);
     }
     .stitle {
-      font-family: var(--ff-d); font-size: clamp(2rem, 4.5vw, 3.4rem);
-      font-weight: 400; line-height: 1.1; letter-spacing: -0.02em; color: var(--text);
+      font-family: var(--ff-d);
+      font-size: clamp(2rem, 4.5vw, 3.5rem);
+      font-weight: 400; line-height: 1.08;
+      letter-spacing: -0.022em; color: var(--text);
     }
-    .stitle em { font-style: italic; color: var(--gold); }
-    .slead { font-size: 0.92rem; color: var(--text2); margin-top: 0.65rem; max-width: 480px; }
+    .stitle em { font-style: italic; color: var(--gold2); }
+    .slead {
+      font-size: 0.93rem; color: var(--text2);
+      margin-top: 0.7rem; max-width: 480px; line-height: 1.7;
+    }
 
     /* ── PRODUCTS ── */
     #products { background: var(--bg); }
+
     .prod-header {
-      display: flex; align-items: flex-end; justify-content: space-between;
-      flex-wrap: wrap; gap: 1rem; margin-bottom: 3rem;
+      display: flex; align-items: flex-end;
+      justify-content: space-between;
+      flex-wrap: wrap; gap: 1.5rem;
+      margin-bottom: 3.5rem;
     }
+
     .pgrid {
-      display: flex;
-      flex-wrap: wrap;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
       gap: 1px;
       background: var(--border);
-      border: 1px solid var(--border); border-radius: 12px; overflow: hidden;
+      border: 1px solid var(--border);
+      border-radius: 14px; overflow: hidden;
     }
+
+
     .pcard {
-      flex: 1 1 45%;
-      min-width: 250px;
-      max-width: 100%;
-      box-sizing: border-box;
-      margin: 0;
-    }
-    @media (max-width: 860px) {
-      .pcard {
-        flex-basis: 100%;
-      }
-    }
-    .pcard {
-      background: var(--surface); padding: 1.85rem 1.65rem;
-      text-decoration: none; display: flex; flex-direction: column;
+      background: var(--surface);
+      padding: 2rem 1.85rem;
+      text-decoration: none;
+      display: flex; flex-direction: column;
       position: relative; overflow: hidden;
-      transition: background 0.25s var(--ease);
+      transition: background 0.3s var(--ease);
+      cursor: pointer;
     }
     .pcard:hover { background: var(--card); }
-    .pcard::before {
-      content: ''; position: absolute; inset: 0; opacity: 0;
-      background: radial-gradient(circle at 25% 25%, var(--pg, rgba(212,168,71,0.08)), transparent 60%);
-      transition: opacity 0.3s;
+    .pcard.featured {
+      grid-row: span 2;
+      grid-column: span 2;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      align-items: center;
+      padding: 8rem 2rem 2.5rem 2rem !important;
+      gap: 1rem;
     }
-    .pcard:hover::before { opacity: 1; }
+    .pcard.featured .pcard-icon {
+      margin-bottom: 2.5rem;
+    }
+    .pcard.featured .pcard-icon img {
+      width: 220px !important;
+      height: 220px !important;
+    }
+    .pcard.featured .pcard-name {
+      font-size: 1.35rem;
+      margin-bottom: 0.5rem;
+    }
+    .pcard.featured .pcard-tag {
+      margin-bottom: 1.5rem;
+    }
+    .pcard.featured .pcard-desc {
+      font-size: 0.95rem;
+      margin-bottom: 0;
+    }
+    .pcard.featured .pcard-arrow {
+      font-size: 0.8rem;
+    }
+    @media (max-width: 1024px) {
+      .pgrid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+      .pcard.featured {
+        grid-column: span 2;
+        grid-row: span 1;
+      }
+    }
+    @media (max-width: 640px) {
+      .pgrid {
+        grid-template-columns: 1fr;
+      }
+      .pcard.featured {
+        grid-column: span 1;
+        grid-row: span 1;
+      }
+    }
+
+    .pcard-glow {
+      position: absolute; inset: 0; opacity: 0;
+      transition: opacity 0.35s var(--ease);
+      pointer-events: none;
+    }
+    .pcard:hover .pcard-glow { opacity: 1; }
+
+    .pcard-top-line {
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 1.5px; opacity: 0;
+      transition: opacity 0.3s var(--ease);
+    }
+    .pcard:hover .pcard-top-line { opacity: 1; }
+
     .pcard-badge {
       position: absolute; top: 1.1rem; right: 1.1rem;
-      font-family: var(--ff-m); font-size: 0.53rem; letter-spacing: 0.1em;
-      text-transform: uppercase; background: var(--gold-dim); color: var(--gold);
-      padding: 0.2em 0.6em; border-radius: 3px; border: 1px solid rgba(212,168,71,0.18);
+      font-family: var(--ff-m); font-size: 0.5rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      background: var(--gold-dim); color: var(--gold2);
+      padding: 0.22em 0.65em; border-radius: 3px;
+      border: 1px solid rgba(201,150,58,0.2);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
     }
-    .pcard-img {
-      width: 46px; height: 46px; border-radius: 11px; overflow: hidden;
-      border: 1px solid var(--border2); background: var(--card);
+    .pcard-badge svg {
+      width: 10px;
+      height: 10px;
+      flex-shrink: 0;
+      stroke: currentColor;
+      fill: none;
+    }
+
+    .pcard-icon {
+      width: 50px; height: 50px; border-radius: 13px;
+      border: 1px solid var(--border2);
+      background: var(--card);
       display: flex; align-items: center; justify-content: center;
-      margin-bottom: 1.1rem; flex-shrink: 0;
+      font-size: 1.4rem; margin-bottom: 1.2rem; flex-shrink: 0;
+      transition: border-color 0.2s, transform 0.2s;
     }
-    .pcard-img img { width: 34px; height: 34px; object-fit: contain; }
+    .pcard:hover .pcard-icon {
+      border-color: var(--border3);
+      transform: scale(1.06);
+    }
+
     .pcard-name {
       font-family: var(--ff-u); font-weight: 700; font-size: 1.05rem;
-      color: var(--text); letter-spacing: -0.01em; margin-bottom: 0.28rem;
+      color: var(--text); letter-spacing: -0.015em; margin-bottom: 0.28rem;
     }
     .pcard-tag {
-      font-family: var(--ff-m); font-size: 0.55rem; letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--text3); margin-bottom: 0.65rem;
+      font-family: var(--ff-m); font-size: 0.52rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text3); margin-bottom: 0.7rem;
     }
-    .pcard-desc { font-size: 0.85rem; color: var(--text2); line-height: 1.6; flex: 1; }
+    .pcard-desc {
+      font-size: 0.85rem; color: var(--text2);
+      line-height: 1.65; flex: 1;
+    }
     .pcard-arrow {
-      display: flex; align-items: center; gap: 0.4rem; margin-top: 1.4rem;
-      font-family: var(--ff-m); font-size: 0.58rem; letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--text3);
+      display: flex; align-items: center; gap: 0.4rem;
+      margin-top: 1.6rem;
+      font-family: var(--ff-m); font-size: 0.7rem; font-weight: 500;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text3);
       transition: color 0.2s, gap 0.2s;
     }
-    .pcard:hover .pcard-arrow { color: var(--gold); gap: 0.65rem; }
+    .pcard:hover .pcard-arrow { color: var(--gold2); gap: 0.7rem; }
+    .pcard-arrow .icon-ext {
+      width: 12px;
+      height: 12px;
+      margin-left: 0.15em;
+      flex-shrink: 0;
+      stroke: currentColor;
+      fill: none;
+      align-self: center;
+    }
 
     /* ── DEMOS ── */
     #demos { background: var(--surface); }
+
     .dgrid {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 3.5rem; margin-top: 3.5rem;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 3.5rem; margin-top: 4rem;
     }
-    .dblock { opacity: 0; transform: translateY(26px); transition: opacity 0.65s var(--ease), transform 0.65s var(--ease); }
-    .dblock.vis { opacity: 1; transform: none; }
+    @media (max-width: 780px) {
+      .dgrid { grid-template-columns: 1fr; }
+    }
+
+    .dblock { opacity: 0; }
+
     .dlabel {
-      font-family: var(--ff-m); font-size: 0.55rem; letter-spacing: 0.18em;
-      text-transform: uppercase; color: var(--text3); margin-bottom: 0.55rem;
+      font-family: var(--ff-m); font-size: 0.53rem;
+      letter-spacing: 0.18em; text-transform: uppercase;
+      color: var(--text3); margin-bottom: 0.6rem;
       display: flex; align-items: center; gap: 0.45rem;
     }
-    .dlabel::before { content:''; width:5px; height:5px; border-radius:50%; background:var(--gold); flex-shrink:0; }
-    .dtitle { font-family: var(--ff-d); font-size: 1.45rem; color: var(--text); margin-bottom: 0.35rem; }
-    .ddesc { font-size: 0.82rem; color: var(--text2); line-height: 1.55; margin-bottom: 1.2rem; }
+    .dlabel::before {
+      content: ''; width: 5px; height: 5px;
+      border-radius: 50%; background: var(--gold);
+      flex-shrink: 0;
+    }
+    .dtitle {
+      font-family: var(--ff-d); font-size: 1.5rem;
+      color: var(--text); margin-bottom: 0.38rem;
+    }
+    .ddesc { font-size: 0.83rem; color: var(--text2); line-height: 1.6; margin-bottom: 1.2rem; }
 
-    /* browser chrome frame */
+    /* Browser chrome frame */
     .eframe {
-      border-radius: 11px; border: 1px solid var(--border2); overflow: hidden;
-      box-shadow: 0 20px 60px rgba(0,0,0,0.45);
+      border-radius: 12px; border: 1px solid var(--border2);
+      overflow: hidden;
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5), 0 0 0 1px var(--border);
+      transition: transform 0.3s var(--ease), box-shadow 0.3s var(--ease);
+    }
+    .eframe:hover {
+      transform: translateY(-4px) scale(1.01);
+      box-shadow: 0 36px 80px rgba(0,0,0,0.6), 0 0 0 1px var(--border2);
     }
     .echrome {
-      background: #18181b; padding: 8px 12px;
-      display: flex; align-items: center; gap: 6px;
-      border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: #111115; padding: 9px 14px;
+      display: flex; align-items: center; gap: 7px;
+      border-bottom: 1px solid rgba(255,255,255,0.055);
     }
-    .edot { width: 9px; height: 9px; border-radius: 50%; }
+    .edot { width: 10px; height: 10px; border-radius: 50%; }
     .etitle {
-      font-family: var(--ff-m); font-size: 0.58rem;
-      color: rgba(255,255,255,0.25); margin-left: 8px; letter-spacing: 0.07em;
+      font-family: var(--ff-m); font-size: 0.55rem;
+      color: rgba(255,255,255,0.2); margin-left: 8px;
+      letter-spacing: 0.06em;
     }
-    /* inner body where extension CSS applies */
     .ebody {
-      padding: 8px; max-height: 340px; overflow: hidden;
-      background: var(--color-background, #F5F6F8);
+      background: #0D0D10;
+      display: flex; align-items: center; justify-content: center;
+      min-height: 240px;
     }
-    .ebody-dark { background: #0F1117; }
-
-    /* GIF container styling */
-    .gif-container {
-      position: relative;
-      width: 100%;
-      max-width: 400px;
-      margin: 0 auto;
-      border-radius: 12px;
-      overflow: hidden;
-      background: var(--card);
-      border: 1px solid var(--border);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-    }
-
     .demo-gif {
-      width: 100%;
-      height: auto;
-      max-height: 300px;
-      object-fit: contain;
-      display: block;
-      border-radius: 11px;
-    }
-
-    /* Responsive adjustments */
-    @media (max-width: 768px) {
-      .demo-gif {
-        max-height: 250px;
-      }
-    }
-
-    @media (max-width: 480px) {
-      .demo-gif {
-        max-height: 200px;
-      }
-    }
-
-    /* override container so it doesn't fill 100vh inside demo */
-    .ebody .container {
-      height: auto !important; overflow: visible !important; display: block !important;
+      width: 100%; max-height: 300px;
+      object-fit: contain; display: block;
     }
 
     /* ── GUIDE ── */
     #guide { background: var(--bg); }
+
     .ggrid {
-      display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
-      gap: 1.25rem; margin-top: 3rem;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 1.2rem; margin-top: 3.2rem;
     }
+    @media (max-width: 900px) {
+      .ggrid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 560px) {
+      .ggrid { grid-template-columns: 1fr; }
+    }
+
     .gcard {
-      background: var(--surface); border: 1px solid var(--border);
-      border-radius: 10px; padding: 1.65rem; position: relative; overflow: hidden;
-      opacity: 0; transform: translateY(22px);
-      transition: opacity 0.6s var(--ease), transform 0.6s var(--ease),
-                  border-color 0.2s, background 0.2s;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 11px; padding: 1.75rem;
+      position: relative; overflow: hidden;
+      opacity: 0;
+      cursor: default;
+      transition: background 0.25s var(--ease), border-color 0.25s;
     }
-    .gcard.vis { opacity: 1; transform: none; }
-    .gcard:hover { border-color: var(--border2); background: var(--card); }
-    /* step number - high contrast warm white */
+    .gcard::before {
+      content: ''; position: absolute;
+      top: 0; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, var(--gold), transparent);
+      opacity: 0; transform: scaleX(0); transform-origin: left;
+      transition: opacity 0.3s, transform 0.4s var(--ease);
+    }
+    .gcard:hover { background: var(--card); border-color: var(--border2); }
+    .gcard:hover::before { opacity: 1; transform: scaleX(1); }
+
     .gnum {
       font-family: var(--ff-d); font-style: italic;
-      font-size: 5rem; line-height: 1; color: rgba(240,238,232,0.13);
-      position: absolute; top: 0.4rem; right: 0.9rem;
+      font-size: 5.5rem; line-height: 1;
+      color: rgba(240,237,230,0.055);
+      position: absolute; top: 0.5rem; right: 1rem;
       pointer-events: none; user-select: none;
     }
-    .gtitle {
-      font-family: var(--ff-u); font-weight: 600; font-size: 0.9rem;
-      color: var(--text); margin-bottom: 0.5rem;
-      display: flex; align-items: center; gap: 0.55rem;
+    .gicon {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.85rem;
+      color: var(--gold2);
     }
-    .gtitle svg { color: var(--gold); flex-shrink: 0; }
-    .gbody { font-size: 0.83rem; color: var(--text2); line-height: 1.65; }
+    .gicon-svg {
+      width: 1.35rem;
+      height: 1.35rem;
+      flex-shrink: 0;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .icon-inline {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.05em;
+      height: 1.05em;
+      margin: 0 0.08em;
+      vertical-align: -0.2em;
+      color: var(--gold2);
+    }
+    .icon-inline svg {
+      width: 100%;
+      height: 100%;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .ddesc .icon-inline { color: var(--gold2); }
+    .gtitle {
+      font-family: var(--ff-u); font-weight: 700; font-size: 0.9rem;
+      color: var(--text); margin-bottom: 0.55rem; letter-spacing: -0.01em;
+    }
+    .gbody { font-size: 0.82rem; color: var(--text2); line-height: 1.68; }
     .gtip {
-      display: inline-flex; align-items: center; gap: 0.3rem; margin-top: 0.85rem;
-      font-family: var(--ff-m); font-size: 0.58rem; letter-spacing: 0.09em;
-      text-transform: uppercase; background: var(--gold-dim); color: var(--gold);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      flex-wrap: wrap;
+      margin-top: 0.9rem;
+      font-family: var(--ff-m); font-size: 0.52rem;
+      letter-spacing: 0.09em; text-transform: uppercase;
+      background: var(--gold-dim); color: var(--gold2);
       padding: 0.28em 0.65em; border-radius: 3px;
+      border: 1px solid rgba(201,150,58,0.12);
+    }
+    .gtip .icon-inline-tip {
+      width: 0.95em;
+      height: 0.95em;
+      flex-shrink: 0;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
     }
 
     /* ── LEGAL ── */
     #legal { background: var(--surface); }
+
     .lgrid {
-      display: grid; grid-template-columns: 1fr 1fr;
-      gap: 2.5rem; margin-top: 3rem;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 2rem; margin-top: 3.5rem;
+      align-items: stretch;
     }
+
     .lblock {
       background: var(--card); border: 1px solid var(--border);
-      border-radius: 10px; padding: 2rem;
+      border-radius: 12px; padding: 2.2rem;
+      opacity: 0;
+      display: flex;
+      flex-direction: column;
+      min-height: 100%;
     }
     .ltitle {
-      font-family: var(--ff-d); font-size: 1.55rem; color: var(--text);
-      margin-bottom: 1.4rem; padding-bottom: 0.9rem;
+      font-family: var(--ff-d); font-size: 1.6rem;
+      color: var(--text); margin-bottom: 1.6rem;
+      padding-bottom: 1rem;
       border-bottom: 1px solid var(--border);
       display: flex; align-items: center; gap: 0.55rem;
     }
-    .ltitle svg { color: var(--gold); flex-shrink: 0; }
-    .lpoint { display: flex; gap: 0.7rem; margin-bottom: 1rem; }
-    .ldot { width: 5px; height: 5px; border-radius: 50%; background: var(--gold); flex-shrink: 0; margin-top: 0.6rem; }
-    .ltext { font-size: 0.86rem; color: var(--text2); line-height: 1.65; }
-    .ltext strong { color: var(--text); font-weight: 500; }
-    .ltext code {
-      font-family: var(--ff-m); font-size: 0.77em;
-      background: rgba(255,255,255,0.06); padding: 0.1em 0.35em; border-radius: 3px;
+    .ltitle-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--gold2);
+      flex-shrink: 0;
     }
+    .ltitle-icon svg {
+      width: 1.35rem;
+      height: 1.35rem;
+      stroke: currentColor;
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .lpoint { display: flex; gap: 0.75rem; margin-bottom: 1.1rem; }
+    .ldot {
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--gold); flex-shrink: 0; margin-top: 0.65rem;
+    }
+    .ltext { font-size: 0.85rem; color: var(--text2); line-height: 1.7; }
+    .ltext strong { color: var(--text); font-weight: 600; }
+    .ltext code {
+      font-family: var(--ff-m); font-size: 0.75em;
+      background: rgba(255,255,255,0.06);
+      padding: 0.1em 0.35em; border-radius: 3px;
+      color: var(--gold2);
+    }
+    .ltext a { color: var(--gold2); text-decoration: none; }
+    .ltext a:hover { text-decoration: underline; }
+
     .lmono {
-      font-family: var(--ff-m); font-size: 0.72rem;
-      line-height: 1.82; color: var(--text3);
-      white-space: pre-wrap; word-break: break-word;
+      font-family: var(--ff-m); font-size: 0.7rem;
+      line-height: 1.75; color: var(--text3);
+      white-space: normal;
+      word-break: break-word;
+      overflow-wrap: break-word;
+      width: 100%;
+      max-width: none;
     }
     .lmono strong { color: var(--text2); font-weight: 500; }
-    .llink {
-      display: inline-flex; align-items: center; gap: 0.4rem; width: 100%;
-      font-family: var(--ff-m); font-size: 0.58rem; letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--gold); text-decoration: none;
-      margin-top: 1.4rem; padding-top: 1.2rem; border-top: 1px solid var(--border);
-      transition: gap 0.2s;
+    .lmono p { margin-bottom: 0.85rem; }
+    .lmono p:last-child { margin-bottom: 0; }
+    .llicense-header {
+      color: var(--text2);
+      margin-bottom: 0.25rem;
     }
-    .llink:hover { gap: 0.65rem; }
+    .llicense-header strong { color: var(--text); font-weight: 600; }
+
+    .llink {
+      display: inline-flex; align-items: center; gap: 0.4rem;
+      font-family: var(--ff-m); font-size: 0.56rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--gold2); text-decoration: none;
+      margin-top: auto;
+      padding-top: 1.2rem;
+      border-top: 1px solid var(--border);
+      width: 100%;
+      transition: gap 0.2s, color 0.2s;
+    }
+    .llink:hover { gap: 0.7rem; color: var(--gold3); }
+    .llink .icon-ext {
+      width: 12px;
+      height: 12px;
+      flex-shrink: 0;
+      stroke: currentColor;
+      fill: none;
+    }
+
+    .icon-img-fb {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      color: var(--gold2);
+    }
+    .icon-img-fb svg {
+      width: 18px;
+      height: 18px;
+    }
+    .pcard-icon .icon-img-fb svg {
+      width: 26px;
+      height: 26px;
+    }
+    .flogo-icon .icon-img-fb svg {
+      width: 14px;
+      height: 14px;
+    }
+    .btn-flash-msg {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4em;
+    }
+    .btn-flash-msg svg {
+      width: 14px;
+      height: 14px;
+      flex-shrink: 0;
+      stroke: currentColor;
+      fill: none;
+    }
 
     /* ── FOOTER ── */
     #pfooter {
-      background: var(--bg); border-top: 1px solid var(--border);
-      padding: 2.2rem clamp(1.25rem, 5vw, 4rem);
-      position: relative; z-index: 1;
+      background: var(--bg);
+      border-top: 1px solid var(--border);
+      padding: 2.5rem clamp(1.25rem, 5vw, 5rem);
+      position: relative; z-index: 2;
     }
     .finner {
-      max-width: 1120px; margin: 0 auto;
-      display: flex; align-items: center; justify-content: space-between;
-      flex-wrap: wrap; gap: 1.1rem;
+      width: min(100%, 1480px); max-width: 1480px;
+      margin: 0 auto;
+      display: flex; align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap; gap: 1.2rem;
     }
-    .flogo { display: flex; align-items: center; gap: 7px; text-decoration: none; }
-    .flogo img { width: 24px; height: 24px; border-radius: 6px; }
+    .flogo { display: flex; align-items: center; gap: 8px; text-decoration: none; }
+    .flogo-icon {
+      width: 26px; height: 26px; border-radius: 7px;
+      background: var(--gold-dim); border: 1px solid rgba(201,150,58,0.2);
+      display: flex; align-items: center; justify-content: center; font-size: 0.85rem;
+    }
     .flogo span { font-family: var(--ff-u); font-weight: 700; font-size: 0.9rem; color: var(--text); }
-    .flogo span em { font-style: normal; color: var(--gold); }
-    .flinks { display: flex; gap: 2px; list-style: none; flex-wrap: wrap; }
+    .flogo em { font-style: normal; color: var(--gold2); }
+
+    .flinks { display: flex; gap: 1px; list-style: none; flex-wrap: wrap; }
     .flinks a {
-      font-family: var(--ff-m); font-size: 0.58rem; letter-spacing: 0.1em;
-      text-transform: uppercase; color: var(--text3); text-decoration: none;
-      padding: 0.3em 0.65em; border-radius: 3px;
+      font-family: var(--ff-m); font-size: 0.55rem;
+      letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--text3); text-decoration: none;
+      padding: 0.32em 0.7em; border-radius: 4px;
       transition: color 0.2s, background 0.2s;
     }
-    .flinks a:hover { color: var(--gold); background: var(--gold-dim); }
-    .fcopy { font-family: var(--ff-m); font-size: 0.56rem; letter-spacing: 0.07em; color: var(--text3); }
+    .flinks a:hover { color: var(--gold2); background: var(--gold-dim); }
 
-    /* ── ANIMATIONS ── */
-    @keyframes au {
-      from { opacity: 0; transform: translateY(20px); }
-      to   { opacity: 1; transform: translateY(0); }
+    .fcopy {
+      font-family: var(--ff-m); font-size: 0.53rem;
+      letter-spacing: 0.07em; color: var(--text3);
     }
-    .rev { opacity: 0; transform: translateY(20px); transition: opacity 0.65s var(--ease), transform 0.65s var(--ease); }
-    .rev.vis { opacity: 1; transform: none; }
+
+    /* ── ANIMATIONS (initial hidden states) ── */
+    .will-animate { opacity: 0; }
 
     /* ── RESPONSIVE ── */
     @media (max-width: 860px) {
-      .dgrid { grid-template-columns: 1fr; }
       .lgrid { grid-template-columns: 1fr; }
+      .dgrid { grid-template-columns: 1fr; gap: 2.5rem; }
+      .h-stats { gap: 2rem; }
     }
-    @media (max-width: 640px) {
+    @media (max-width: 700px) {
       .nav-list li:not(:last-child):not(:nth-last-child(2)) { display: none; }
+      .prod-header { flex-direction: column; align-items: flex-start; }
+    }
+    @media (max-width: 480px) {
+      .h-stats { flex-wrap: wrap; justify-content: center; }
+      .lgrid { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -456,7 +876,7 @@
 <!-- NAV -->
 <nav id="pnav">
   <a href="#hero" class="nl">
-    <img src="icons/quickclippro.png" alt="QuickClip Pro" onerror="this.style.display='none'">
+    <div class="nl-icon"><img src="icons/quickclippro.png" alt="QuickClip Pro" width="20" height="20" style="object-fit:contain;border-radius:4px;" onerror="imgIconFallback(this,'bolt')"></div>
     <span class="nl-brand">QuickClip <em>Pro</em></span>
   </a>
   <ul class="nav-list">
@@ -465,179 +885,257 @@
     <li><a href="#guide">Guide</a></li>
     <li><a href="#legal">Legal</a></li>
     <li><a href="https://github.com/akasumitlamba/QuickClipPro" target="_blank" rel="noopener">GitHub</a></li>
-    <li><a href="https://chromewebstore.google.com/detail/ndibnfgbmcfgoeapohknfeeiilgfhdjg" target="_blank" rel="noopener" class="nav-cta">Install Free ↗</a></li>
+    <li><a href="https://chromewebstore.google.com/detail/ndibnfgbmcfgoeapohknfeeiilgfhdjg" target="_blank" rel="noopener" class="nav-cta">Install Free<svg class="icon-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg></a></li>
   </ul>
 </nav>
 <div id="spbar"></div>
 
-<!-- ══ HERO ══ -->
+<!-- ════════════ HERO ════════════ -->
 <section id="hero" class="psec">
-  <div class="h-glow"></div>
-  <p class="h-kicker">v2.0 · Chromium Sidebar Extension</p>
-  <h1 class="h-h1">Thank you for installing<br><em>QuickClip Pro</em></h1>
-  <p class="h-sub">Your clipboard just became a command centre. Snippets, counters, tags, images - all in a persistent sidebar.</p>
-  <div class="h-btns">
+  <div class="hero-orb"></div>
+  <div class="hero-orb2"></div>
+  <div class="grid-bg"></div>
+
+  <p class="h-kicker will-animate" id="h-kicker">v3.0 · Chromium Sidebar Extension</p>
+
+  <h1 class="h-h1 will-animate" id="h-h1">
+    Thank you for installing<br><em>QuickClip Pro</em>
+  </h1>
+
+  <p class="h-sub will-animate" id="h-sub">
+    Your clipboard just became a command centre. Snippets, counters, tags, images — all in a persistent sidebar.
+  </p>
+
+  <div class="h-btns will-animate" id="h-btns">
     <a href="#products" class="btn btn-gold">
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/></svg>
-      Explore More Products
+      Explore Products
     </a>
     <button onclick="shareExtension(this)" class="btn btn-ghost">
-      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8"/><polyline points="16,6 12,2 8,6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
-      Share with Friends
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 12v8a2 2 0 002 2h12a2 2 0 002-2v-8"/><polyline points="16,6 12,2 8,6"/><line x1="12" y1="2" x2="12" y2="15"/></svg>
+      Share
     </button>
     <a href="#guide" class="btn btn-ghost">How to Use →</a>
   </div>
+
+  <div class="h-stats will-animate" id="h-stats">
+    <div class="h-stat">
+      <div class="h-stat-val">100%</div>
+      <div class="h-stat-lbl">Local & Private</div>
+    </div>
+    <div class="h-stat">
+      <div class="h-stat-val">0</div>
+      <div class="h-stat-lbl">Servers</div>
+    </div>
+    <div class="h-stat">
+      <div class="h-stat-val">∞</div>
+      <div class="h-stat-lbl">Snippets</div>
+    </div>
+    <div class="h-stat">
+      <div class="h-stat-val">Free</div>
+      <div class="h-stat-lbl">Forever</div>
+    </div>
+  </div>
+
   <div class="h-rule"></div>
 </section>
 
 <!-- MARQUEE -->
 <div class="mqwrap" aria-hidden="true">
   <div class="mqtrack">
-    <span class="mqitem"><b>◆</b> Snippet Manager</span><span class="mqitem"><b>◆</b> Custom Tags</span>
-    <span class="mqitem"><b>◆</b> Image Support</span><span class="mqitem"><b>◆</b> Mini Counters</span>
-    <span class="mqitem"><b>◆</b> Search &amp; Filter</span><span class="mqitem"><b>◆</b> Dark &amp; Light Mode</span>
-    <span class="mqitem"><b>◆</b> Export / Import JSON</span><span class="mqitem"><b>◆</b> Auto Link Detection</span>
-    <span class="mqitem"><b>◆</b> 100% Local &amp; Private</span><span class="mqitem"><b>◆</b> Open Source</span>
-    <span class="mqitem"><b>◆</b> Snippet Manager</span><span class="mqitem"><b>◆</b> Custom Tags</span>
-    <span class="mqitem"><b>◆</b> Image Support</span><span class="mqitem"><b>◆</b> Mini Counters</span>
-    <span class="mqitem"><b>◆</b> Search &amp; Filter</span><span class="mqitem"><b>◆</b> Dark &amp; Light Mode</span>
-    <span class="mqitem"><b>◆</b> Export / Import JSON</span><span class="mqitem"><b>◆</b> Auto Link Detection</span>
-    <span class="mqitem"><b>◆</b> 100% Local &amp; Private</span><span class="mqitem"><b>◆</b> Open Source</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Snippet Manager</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Custom Tags</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Image Support</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Mini Counters</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Search &amp; Filter</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Dark &amp; Light Mode</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Export / Import JSON</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Auto Link Detection</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>100% Local &amp; Private</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Open Source</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Snippet Manager</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Custom Tags</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Image Support</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Mini Counters</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Search &amp; Filter</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Dark &amp; Light Mode</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Export / Import JSON</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Auto Link Detection</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>100% Local &amp; Private</span>
+    <span class="mqitem"><span class="mq-dot" aria-hidden="true"><svg width="8" height="8" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2l8 10-8 10-8-10 8-10z" fill="currentColor"/></svg></span>Open Source</span>
   </div>
 </div>
 
-<!-- ══════════════════════════
-     OTHER PRODUCTS (first real content section)
-══════════════════════════ -->
+<!-- ════════════ PRODUCTS ════════════ -->
 <section id="products" class="psec">
   <div class="pin">
 
-    <div class="prod-header rev">
-      <div>
+    <div class="prod-header">
+      <div class="will-animate">
         <p class="eyebrow">By akasumitlamba</p>
-        <h2 class="stitle">More tools you<br>might love</h2>
-        <p class="slead">Same philosophy across every product - focused, private, no bloat, no subscriptions.</p>
+        <h2 class="stitle">More tools you<br>might <em>love</em></h2>
+        <p class="slead">Same philosophy — focused, private, no bloat, no subscriptions.</p>
       </div>
-      <a href="https://github.com/akasumitlamba" target="_blank" rel="noopener" class="btn btn-ghost" style="align-self:flex-end;">
-        All Projects on GitHub →
-      </a>
+      <div class="will-animate" style="align-self:flex-end;">
+        <a href="https://github.com/akasumitlamba" target="_blank" rel="noopener" class="btn btn-ghost">
+          All Projects on GitHub →
+        </a>
+      </div>
     </div>
 
-    <div class="pgrid rev">
+    <div class="pgrid">
 
-      <!-- QuickClip (basic) -->
       <a href="https://chromewebstore.google.com/detail/mjdfflpebcmmpipdeeianpjfolmhkmna"
-         target="_blank" rel="noopener" class="pcard" style="--pg:rgba(99,102,241,0.09);">
-        <div class="pcard-img">
-          <img src="icons/quickclip.png" alt="QuickClip" onerror="this.outerHTML='<span style=font-size:1.4rem>📋</span>'">
-        </div>
+         target="_blank" rel="noopener" class="pcard will-animate">
+        <div class="pcard-glow" style="background:radial-gradient(circle at 20% 20%, rgba(99,102,241,0.12), transparent 60%)"></div>
+        <div class="pcard-top-line" style="background:linear-gradient(90deg,#6366F1,transparent)"></div>
+        <div class="pcard-icon"><img src="icons/quickclip.png" alt="QuickClip" width="30" height="30" style="object-fit:contain;border-radius:6px;" onerror="imgIconFallback(this,'clipboard')"></div>
         <div class="pcard-name">QuickClip</div>
         <div class="pcard-tag">Browser Extension · Chrome</div>
-        <div class="pcard-desc">The original, lightweight clipboard companion. Manage text and links without the full sidebar setup - a simpler, everyday clipping tool.</div>
-        <div class="pcard-arrow">Open in Chrome Store <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+        <div class="pcard-desc">The original, lightweight clipboard companion. Manage text and links without the full sidebar setup — simple, fast, everyday clipping.</div>
+        <div class="pcard-arrow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle><path d="M21.17 8H12"></path><path d="M3.95 6.06L8.54 14"></path><path d="M10.88 21.94L15.46 14"></path></svg>
+          Open in Chrome Store →
+        </div>
       </a>
 
-      <!-- QuickClip Pro - current -->
       <a href="https://chromewebstore.google.com/detail/ndibnfgbmcfgoeapohknfeeiilgfhdjg"
-         target="_blank" rel="noopener" class="pcard" style="--pg:rgba(212,168,71,0.1); background:var(--card);">
-        <span class="pcard-badge">You have this ✓</span>
-        <div class="pcard-img">
-          <img src="icons/quickclippro.png" alt="QuickClip Pro" onerror="this.outerHTML='<span style=font-size:1.4rem>⚡</span>'">
-        </div>
+         target="_blank" rel="noopener" class="pcard will-animate" style="background:var(--card);">
+        <div class="pcard-glow" style="background:radial-gradient(circle at 20% 20%, rgba(201,150,58,0.13), transparent 60%)"></div>
+        <div class="pcard-top-line" style="background:linear-gradient(90deg,var(--gold),transparent)"></div>
+        <span class="pcard-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" d="M20 6L9 17l-5-5"/></svg> You have this</span>
+        <div class="pcard-icon"><img src="icons/quickclippro.png" alt="QuickClip Pro" width="30" height="30" style="object-fit:contain;border-radius:6px;" onerror="imgIconFallback(this,'bolt')"></div>
         <div class="pcard-name">QuickClip Pro</div>
         <div class="pcard-tag">Browser Extension · Chrome &amp; Edge</div>
-        <div class="pcard-desc">The full-featured sidebar clipboard manager - tags, images, mini-counters, dark mode, search &amp; filter, full customisation. Currently installed.</div>
-        <div class="pcard-arrow">Rate it on the Store ↗ <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+        <div class="pcard-desc">Full-featured sidebar clipboard manager — tags, images, mini-counters, dark mode, search &amp; filter, full customisation. Currently installed.</div>
+        <div class="pcard-arrow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><circle cx="12" cy="12" r="4"></circle><path d="M21.17 8H12"></path><path d="M3.95 6.06L8.54 14"></path><path d="M10.88 21.94L15.46 14"></path></svg>
+          Rate it on the Store<svg class="icon-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
+        </div>
       </a>
 
-      <!-- WWRecorder -->
       <a href="https://akasumitlamba.github.io/WWRecorder/"
-         target="_blank" rel="noopener" class="pcard" style="--pg:rgba(244,63,94,0.09);">
-        <div class="pcard-img">
-          <img src="icons/wwrecorder.png" alt="WWRecorder" onerror="this.outerHTML='<span style=font-size:1.4rem>🎥</span>'">
-        </div>
+         target="_blank" rel="noopener" class="pcard will-animate featured">
+        <div class="pcard-glow" style="background:radial-gradient(circle at 20% 20%, rgba(244,63,94,0.11), transparent 60%)"></div>
+        <div class="pcard-top-line" style="background:linear-gradient(90deg,#F43F5E,transparent)"></div>
+        <div class="pcard-icon"><img src="icons/wwrecorder.png" alt="WWRecorder" width="30" height="30" style="object-fit:contain;border-radius:6px;" onerror="imgIconFallback(this,'video')"></div>
         <div class="pcard-name">WWRecorder</div>
         <div class="pcard-tag">Windows App</div>
-        <div class="pcard-desc">A lightweight, high-performance screen recorder for Windows. Capture your screen cleanly without the overhead of bulky recording software.</div>
-        <div class="pcard-arrow">Learn More <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+        <div class="pcard-desc">
+          <strong>High-performance recording for Windows.</strong> Crash-resilient .MKV format survives unexpected shutdowns. Stable 30 FPS, zero-latency audio toggle, instant screenshot capture with auto-clipboard. No admin rights, no background services, no telemetry. Press Shift+Backspace to record, Shift+Home for screenshots. Configurable hotkeys, output folder, edge dock interface. <strong>Free & Open Source.</strong>
+        </div>
+        <div class="pcard-arrow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+          Get Now →
+        </div>
       </a>
 
-      <!-- Stype -->
       <a href="https://akasumitlamba.github.io/Stype/"
-         target="_blank" rel="noopener" class="pcard" style="--pg:rgba(245,158,11,0.09);">
-        <div class="pcard-img">
-          <img src="icons/stype.png" alt="Stype" onerror="this.outerHTML='<span style=font-size:1.4rem>🎙️</span>'">
-        </div>
+         target="_blank" rel="noopener" class="pcard will-animate">
+        <div class="pcard-glow" style="background:radial-gradient(circle at 20% 20%, rgba(245,158,11,0.11), transparent 60%)"></div>
+        <div class="pcard-top-line" style="background:linear-gradient(90deg,#F59E0B,transparent)"></div>
+        <div class="pcard-icon"><img src="icons/stype.png" alt="Stype" width="30" height="30" style="object-fit:contain;border-radius:6px;" onerror="imgIconFallback(this,'mic')"></div>
         <div class="pcard-name">Stype</div>
         <div class="pcard-tag">AI Speech-to-Text Tool</div>
-        <div class="pcard-desc">AI-powered speech-to-text that correctly handles punctuation and capitalisation. Just speak - it types perfectly formatted prose for you.</div>
-        <div class="pcard-arrow">Learn More <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+        <div class="pcard-desc">AI-powered speech-to-text with correct punctuation and capitalisation. Just speak — it types perfectly formatted prose for you.</div>
+        <div class="pcard-arrow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"></path><path d="M2 12h20"></path></svg>
+          Get Now →
+        </div>
       </a>
 
-      <!-- Keycast -->
       <a href="https://github.com/akasumitlamba/KeyCast"
-         target="_blank" rel="noopener" class="pcard" style="--pg:rgba(14,165,233,0.09);">
-        <div class="pcard-img">
-          <img src="icons/keycast.png" alt="Keycast" onerror="this.outerHTML='<span style=font-size:1.4rem>⌨️</span>'">
-        </div>
+         target="_blank" rel="noopener" class="pcard will-animate">
+        <div class="pcard-glow" style="background:radial-gradient(circle at 20% 20%, rgba(14,165,233,0.11), transparent 60%)"></div>
+        <div class="pcard-top-line" style="background:linear-gradient(90deg,#0EA5E9,transparent)"></div>
+        <div class="pcard-icon"><img src="icons/keycast.png" alt="Keycast" width="30" height="30" style="object-fit:contain;border-radius:6px;" onerror="imgIconFallback(this,'keyboard')"></div>
         <div class="pcard-name">Keycast</div>
         <div class="pcard-tag">Windows App · GitHub</div>
-        <div class="pcard-desc">Show keyboard and mouse inputs live on screen. Built for screen recorders, tutorial creators, and live streamers who need keystroke overlays.</div>
-        <div class="pcard-arrow">View on GitHub <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg></div>
+        <div class="pcard-desc">Show keyboard and mouse inputs live on screen. Built for screen recorders, tutors, and live streamers who need keystroke overlays.</div>
+        <div class="pcard-arrow">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+          View on GitHub →
+        </div>
       </a>
 
     </div>
   </div>
 </section>
 
-<!-- ══════════════════════════
-     DEMO GIFS
-══════════════════════════ -->
+<!-- ════════════ DEMOS ════════════ -->
 <section id="demos" class="psec">
   <div class="pin">
-    <p class="eyebrow rev">Demo GIFs</p>
-    <h2 class="stitle rev">See it in action</h2>
-    <p class="slead rev">Watch QuickClip Pro in action - these animated demonstrations show the key features and workflows.</p>
+    <p class="eyebrow will-animate">Demo GIFs</p>
+    <h2 class="stitle will-animate">See it in <em>action</em></h2>
+    <p class="slead will-animate">Animated walkthroughs of the core features and workflows.</p>
 
     <div class="dgrid">
 
-      <!-- DEMO 1 - Saving Snippets -->
       <div class="dblock">
         <div class="dlabel">Saving Snippets</div>
         <div class="dtitle">Save &amp; tag your clips</div>
-        <div class="ddesc">Type anything, pick a tag, hit Save - or use Paste to clipboard-read and save in one tap. The counter tracks repeated tasks.</div>
-        <div class="gif-container">
-          <img src="icons/demo-saving-snippets.gif" alt="Saving snippets with tags and counter" class="demo-gif">
+        <div class="ddesc">Type anything, pick a tag, hit Save — or use Paste to clipboard-read in one tap. The counter tracks repeated tasks automatically.</div>
+        <div class="eframe">
+          <div class="echrome">
+            <div class="edot" style="background:#FF5F57"></div>
+            <div class="edot" style="background:#FFBD2E"></div>
+            <div class="edot" style="background:#28CA42"></div>
+            <span class="etitle">QuickClip Pro</span>
+          </div>
+          <div class="ebody">
+            <img src="icons/demo-saving-snippets.gif" alt="Saving snippets demo" class="demo-gif">
+          </div>
         </div>
       </div>
 
-      <!-- DEMO 2 - Search & Filters -->
       <div class="dblock">
-        <div class="dlabel">Search & Filters</div>
+        <div class="dlabel">Search &amp; Filters</div>
         <div class="dtitle">Search, date &amp; tag filters</div>
-        <div class="ddesc">All three filters work together in real time. Type in search, pick a calendar date, or narrow by tag - instant results, no reloads.</div>
-        <div class="gif-container">
-          <img src="icons/demo-search-filters.gif" alt="Using search and filter features" class="demo-gif">
+        <div class="ddesc">All three filters work together in real time. Type, pick a date, or narrow by tag — instant results, zero reloads.</div>
+        <div class="eframe">
+          <div class="echrome">
+            <div class="edot" style="background:#FF5F57"></div>
+            <div class="edot" style="background:#FFBD2E"></div>
+            <div class="edot" style="background:#28CA42"></div>
+            <span class="etitle">QuickClip Pro</span>
+          </div>
+          <div class="ebody">
+            <img src="icons/demo-search-filters.gif" alt="Search and filters demo" class="demo-gif">
+          </div>
         </div>
       </div>
 
-      <!-- DEMO 3 - Settings Panel -->
       <div class="dblock">
         <div class="dlabel">Settings Panel</div>
         <div class="dtitle">Customise everything</div>
-        <div class="ddesc">Toggle display options, add counters, manage tags, switch themes, and back up your data - all from the ⚙️ gear icon in the header.</div>
-        <div class="gif-container">
-          <img src="icons/demo-settings-panel.gif" alt="Settings panel customization" class="demo-gif">
+        <div class="ddesc">Toggle display options, add counters, manage tags, switch themes, and back up your data — all from the <span class="icon-inline" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></span> gear icon.</div>
+        <div class="eframe">
+          <div class="echrome">
+            <div class="edot" style="background:#FF5F57"></div>
+            <div class="edot" style="background:#FFBD2E"></div>
+            <div class="edot" style="background:#28CA42"></div>
+            <span class="etitle">QuickClip Pro</span>
+          </div>
+          <div class="ebody">
+            <img src="icons/demo-settings-panel.gif" alt="Settings panel demo" class="demo-gif">
+          </div>
         </div>
       </div>
 
-      <!-- DEMO 4 - Managing Snippets -->
       <div class="dblock">
         <div class="dlabel">Managing Snippets</div>
         <div class="dtitle">Tags, copy &amp; delete</div>
-        <div class="ddesc">Every snippet shows its status tag, timestamp, copy and delete buttons. Double-click to edit inline. Links auto-detect and become clickable.</div>
-        <div class="gif-container">
-          <img src="icons/demo-managing-snippets.gif" alt="Managing snippets with copy and delete actions" class="demo-gif">
+        <div class="ddesc">Every snippet shows its tag, timestamp, copy and delete buttons. Double-click to edit inline. Links auto-detect and become clickable.</div>
+        <div class="eframe">
+          <div class="echrome">
+            <div class="edot" style="background:#FF5F57"></div>
+            <div class="edot" style="background:#FFBD2E"></div>
+            <div class="edot" style="background:#28CA42"></div>
+            <span class="etitle">QuickClip Pro</span>
+          </div>
+          <div class="ebody">
+            <img src="icons/demo-managing-snippets.gif" alt="Managing snippets demo" class="demo-gif">
+          </div>
         </div>
       </div>
 
@@ -645,220 +1143,130 @@
   </div>
 </section>
 
-<!-- ══════════════════════════
-     HOW TO USE
-══════════════════════════ -->
+<!-- ════════════ GUIDE ════════════ -->
 <section id="guide" class="psec">
   <div class="pin">
-    <p class="eyebrow rev">How to Use</p>
-    <h2 class="stitle rev">Nine steps to<br><em>clipboard mastery</em></h2>
+    <p class="eyebrow will-animate">How to Use</p>
+    <h2 class="stitle will-animate">Nine steps to<br><em>clipboard mastery</em></h2>
 
     <div class="ggrid">
 
       <div class="gcard">
         <div class="gnum">01</div>
-        <div class="gtitle">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-          Install &amp; Pin
-        </div>
-        <div class="gbody">After installing from the Chrome or Edge store, click the puzzle-piece icon, find <strong>QuickClip Pro</strong> and pin it. Click the pinned icon to open the sidebar - it stays open while you browse without interrupting your tabs.</div>
+        <div class="gicon" aria-hidden="true"><svg class="gicon-svg" viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><path d="M8 21h8"/><path d="M12 17v4"/></svg></div>
+        <div class="gtitle">Install &amp; Pin</div>
+        <div class="gbody">After installing from Chrome or Edge store, click the puzzle-piece icon, find <strong>QuickClip Pro</strong> and pin it. Click the pinned icon to open the sidebar — it stays open while you browse.</div>
         <div class="gtip">Toolbar → Pin → Click to Open</div>
       </div>
 
       <div class="gcard">
         <div class="gnum">02</div>
-        <div class="gtitle">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><rect x="8" y="2" width="8" height="4" rx="1"/></svg>
-          Save a Snippet
-        </div>
-        <div class="gbody">Type or paste any text, URL, or image into the input area. Select a status tag from the dropdown, then hit <strong>Save</strong>. Use <strong>Paste</strong> to clipboard-read and save in one tap. Links auto-detect and become clickable.</div>
-        <div class="gtip">Type → Tag → Save OR Paste & Save</div>
+        <div class="gicon" aria-hidden="true"><svg class="gicon-svg" viewBox="0 0 24 24"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></div>
+        <div class="gtitle">Save a Snippet</div>
+        <div class="gbody">Type or paste any text, URL, or image. Select a status tag from the dropdown, then hit <strong>Save</strong>. Use <strong>Paste</strong> to clipboard-read and save in one tap. Links auto-detect and become clickable.</div>
+        <div class="gtip">Type → Tag → Save OR Paste &amp; Save</div>
       </div>
 
       <div class="gcard">
         <div class="gnum">03</div>
-        <div class="gtitle">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-          Manage Snippets
-        </div>
-        <div class="gbody">Click <strong>📋</strong> to copy a snippet instantly. Click <strong>🗑️</strong> to delete it. To edit, <strong>double-click</strong> the snippet text, make changes, then click outside - saves automatically with no extra steps.</div>
+        <div class="gicon" aria-hidden="true"><svg class="gicon-svg" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 013 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></div>
+        <div class="gtitle">Manage Snippets</div>
+        <div class="gbody">Click <span class="icon-inline" aria-label="Copy"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg></span> to copy instantly. Click <span class="icon-inline" aria-label="Delete"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg></span> to delete. <strong>Double-click</strong> any snippet text to edit inline — saves automatically when you click outside. No extra steps.</div>
         <div class="gtip">Double-click to Edit · Click outside to Save</div>
       </div>
 
       <div class="gcard">
         <div class="gnum">04</div>
-        <div class="gtitle">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          Execution Counter
-        </div>
-        <div class="gbody">The <strong>Execution Count</strong> in the header tracks repeated tasks. Hit <strong>+</strong> to increment, <strong>−</strong> to decrement, the reset icon to return to zero. Create multiple independent mini-counters in Settings for different tasks.</div>
-        <div class="gtip">+ / − / ↺ Reset · Mini-Counters in Settings</div>
+        <div class="gicon" aria-hidden="true"><svg class="gicon-svg" viewBox="0 0 24 24"><line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/></svg></div>
+        <div class="gtitle">Execution Counter</div>
+        <div class="gbody">The <strong>Execution Count</strong> in the header tracks repeated tasks. Hit <strong>+</strong> to increment, <strong>−</strong> to decrement, reset icon to return to zero. Create multiple mini-counters in Settings.</div>
+        <div class="gtip"><span>+ / − /</span><svg class="icon-inline-tip" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M3 12a9 9 0 109-9 9.75 9.75 0 006.74 2.74L21 16"/><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M21 3v7h-7"/></svg><span>Reset · Mini-Counters in Settings</span></div>
       </div>
 
       <div class="gcard">
         <div class="gnum">05</div>
-        <div class="gtitle">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-          Search &amp; Filter
-        </div>
-        <div class="gbody">Use the <strong>search bar</strong> to find by content, the <strong>calendar picker</strong> to filter by date, or the <strong>tag dropdown</strong> to narrow by status. All three filters work simultaneously in real time - instant results.</div>
-        <div class="gtip">Search · Date · Tag - all real-time</div>
+        <div class="gicon" aria-hidden="true"><svg class="gicon-svg" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg></div>
+        <div class="gtitle">Search &amp; Filter</div>
+        <div class="gbody">Use the <strong>search bar</strong> to find by content, the <strong>calendar picker</strong> to filter by date, or the <strong>tag dropdown</strong> to narrow by status. All three filters work simultaneously in real time.</div>
+        <div class="gtip">Search · Date · Tag — all real-time</div>
       </div>
 
       <div class="gcard">
         <div class="gnum">06</div>
-        <div class="gtitle">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.07.63-.07.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58z"/></svg>
-          Settings
-        </div>
-        <div class="gbody">Click the <strong>⚙️ gear icon</strong> in the header. Add/rename/hide mini-counters, create custom tags, toggle light/dark/system theme, show or hide individual UI elements, and configure double-click edit behaviour.</div>
-        <div class="gtip">⚙️ → Counters · Tags · Theme · Display</div>
+        <div class="gicon" aria-hidden="true"><svg class="gicon-svg" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></div>
+        <div class="gtitle">Settings</div>
+        <div class="gbody">Click the <strong><span class="icon-inline" aria-label="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg></span> gear icon</strong> in the header. Add/rename/hide mini-counters, create custom tags, toggle light/dark/system theme, show or hide individual UI elements.</div>
+        <div class="gtip"><svg class="icon-inline-tip" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span>→ Counters · Tags · Theme · Display</span></div>
       </div>
 
       <div class="gcard">
         <div class="gnum">07</div>
-        <div class="gtitle">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          Add Images
-        </div>
-        <div class="gbody">Click the <strong>📷 camera icon</strong> in the input area to upload an image. It is stored locally alongside your text content - great for UI mockups, screenshots, or any visual reference you need close at hand.</div>
-        <div class="gtip">📷 Camera → Upload → Save</div>
+        <div class="gicon" aria-hidden="true"><svg class="gicon-svg" viewBox="0 0 24 24"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></div>
+        <div class="gtitle">Add Images</div>
+        <div class="gbody">Click the <strong><span class="icon-inline" aria-label="Camera"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg></span> camera icon</strong> in the input area to upload an image. Stored locally alongside text — great for UI mockups, screenshots, or any visual reference.</div>
+        <div class="gtip"><svg class="icon-inline-tip" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M23 19a2 2 0 01-2 2H3a2 2 0 01-2-2V8a2 2 0 012-2h4l2-3h6l2 3h4a2 2 0 012 2z"/><circle cx="12" cy="13" r="4"/></svg><span>Camera → Upload → Save</span></div>
       </div>
 
       <div class="gcard">
         <div class="gnum">08</div>
-        <div class="gtitle">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="8 17 12 21 16 17"/><line x1="12" y1="12" x2="12" y2="21"/><path d="M20.88 18.09A5 5 0 0018 9h-1.26A8 8 0 103 16.29"/></svg>
-          Export &amp; Import
-        </div>
-        <div class="gbody">In <strong>Settings → Data Management</strong>, click <strong>Export Data</strong> to download a JSON backup of all snippets, counters and settings. Click <strong>Import Data</strong> to restore. <em>Always export before importing</em> - import overwrites current data.</div>
-        <div class="gtip">⚙️ → Data → Export / Import JSON</div>
+        <div class="gicon" aria-hidden="true"><svg class="gicon-svg" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg></div>
+        <div class="gtitle">Export &amp; Import</div>
+        <div class="gbody">In <strong>Settings → Data Management</strong>, click <strong>Export Data</strong> to download a JSON backup. Click <strong>Import Data</strong> to restore. Always export before importing — import overwrites current data.</div>
+        <div class="gtip"><svg class="icon-inline-tip" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span>→ Data → Export / Import JSON</span></div>
       </div>
 
       <div class="gcard">
         <div class="gnum">09</div>
-        <div class="gtitle">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          Custom Tags
-        </div>
-        <div class="gbody">Create up to <strong>8 custom tags</strong> with different colors for organization. In <strong>Settings → Tags</strong>, rename any tag, choose from multiple color options, and assign them to snippets. Perfect for categorizing by project, priority, or workflow stage.</div>
-        <div class="gtip">⚙️ → Tags → Rename & Color (8 available)</div>
+        <div class="gicon" aria-hidden="true"><svg class="gicon-svg" viewBox="0 0 24 24"><path d="M12 2H2v10l9.29 9.29a2 2 0 002.83 0l6.58-6.58a2 2 0 000-2.83L12 2z"/><circle cx="7" cy="7" r="1.5"/></svg></div>
+        <div class="gtitle">Custom Tags</div>
+        <div class="gbody">Create up to <strong>8 custom tags</strong> with different colors. In <strong>Settings → Tags</strong>, rename any tag and choose from multiple color options. Perfect for project, priority, or workflow categorisation.</div>
+        <div class="gtip"><svg class="icon-inline-tip" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg><span>→ Tags → Rename &amp; Color (8 available)</span></div>
       </div>
 
     </div>
   </div>
 </section>
 
-<!-- ══════════════════════════
-     PRIVACY & LICENSE
-══════════════════════════ -->
+<!-- ════════════ LEGAL ════════════ -->
 <section id="legal" class="psec">
   <div class="pin">
-    <p class="eyebrow rev">Legal</p>
-    <h2 class="stitle rev">Privacy &amp; <em>License</em></h2>
-    <p class="slead rev">Complete, unabridged. No legalese for its own sake.</p>
+    <p class="eyebrow will-animate">Legal</p>
+    <h2 class="stitle will-animate">Privacy &amp; <em>License</em></h2>
+    <p class="slead will-animate">Complete, unabridged. No legalese for its own sake.</p>
 
     <div class="lgrid">
 
-      <!-- PRIVACY -->
-      <div class="lblock rev">
-        <div class="ltitle">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          Privacy Policy
-        </div>
+      <div class="lblock will-animate">
+        <div class="ltitle"><span class="ltitle-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg></span> Privacy Policy</div>
 
-        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Zero Data Collection.</strong> QuickClip Pro does not collect any data whatsoever. There are no servers, no accounts, no analytics pipelines, and no telemetry of any description. Nothing you type, save, paste, or do inside the extension is ever transmitted anywhere outside of your own device.</div></div>
-
-        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Local Storage Only.</strong> All snippets, counters, tags, and settings are stored exclusively in your browser's <code>chrome.storage.local</code> API. This is a browser-managed, device-local storage - the developer has no access to it under any circumstances. Your data never leaves your machine.</div></div>
-
-        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>No Tracking or Monitoring.</strong> There are no usage statistics, no event logging, no crash reporting, no heatmaps, no user session recordings, and no third-party analytics SDKs included in any form. Not even page-view counts.</div></div>
-
-        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Permissions Explained.</strong> The extension requests only what it needs: <code>storage</code> to save data locally; <code>clipboardRead</code> &amp; <code>clipboardWrite</code> for the Paste and Copy operations; <code>sidePanel</code> to render the sidebar UI. No <code>tabs</code>, no host permissions, no browsing history access.</div></div>
-
-        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Open Source Verification.</strong> The extension is fully open source. The entire codebase is available on GitHub for independent inspection. There is no obfuscation. Anyone can verify that no data leaves the device by reading the source.</div></div>
-
-        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Data Persistence &amp; Loss.</strong> Data persists between browser sessions as long as your browser profile is intact. Clearing browser data, uninstalling the extension, or resetting your Chrome/Edge profile will permanently erase locally stored data. Export regularly via <em>Settings → Data Management → Export</em> to prevent data loss.</div></div>
-
-        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Children's Privacy.</strong> The extension does not knowingly collect any personal information from children under 13 or under any applicable age of digital consent. The extension collects no personal information from any user.</div></div>
-
-        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Policy Updates.</strong> This privacy policy may be updated when the extension updates. Changes are communicated via the GitHub repository changelog. Continued use of the extension following notification of changes constitutes acceptance of the revised policy.</div></div>
-
-        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Contact.</strong> Questions about this privacy policy? Email <a href="mailto:akasumitlamba@gmail.com" style="color:var(--gold);text-decoration:none;">akasumitlamba@gmail.com</a>. Last updated: August 2026.</div></div>
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Zero Data Collection.</strong> QuickClip Pro does not collect any data whatsoever. No servers, no accounts, no analytics. Nothing you type, save, paste, or do inside the extension is ever transmitted outside your device.</div></div>
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Local Storage Only.</strong> All snippets, counters, tags, and settings are stored in <code>chrome.storage.local</code>. A browser-managed, device-local API — the developer has no access under any circumstances.</div></div>
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>No Tracking or Monitoring.</strong> No usage statistics, no event logging, no crash reporting, no heatmaps, no third-party analytics SDKs of any description. Not even page-view counts.</div></div>
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Permissions Explained.</strong> Only what it needs: <code>storage</code>, <code>clipboardRead</code> &amp; <code>clipboardWrite</code>, and <code>sidePanel</code>. No <code>tabs</code>, no host permissions, no browsing history access.</div></div>
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Open Source Verification.</strong> Entire codebase is on <a href="https://github.com/akasumitlamba/QuickClipPro" target="_blank" rel="noopener">GitHub</a>, no obfuscation. Anyone can verify no data leaves the device.</div></div>
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Data Persistence &amp; Loss.</strong> Data persists between sessions while the browser profile is intact. Clearing browser data or uninstalling will erase it permanently. Export regularly via Settings → Data Management → Export.</div></div>
+        <div class="lpoint"><div class="ldot"></div><div class="ltext"><strong>Contact.</strong> Questions? Email <a href="mailto:akasumitlamba@gmail.com">akasumitlamba@gmail.com</a>. Last updated: April 2026.</div></div>
 
         <a href="https://github.com/akasumitlamba/QuickClipPro/blob/main/PRIVACY.md" target="_blank" rel="noopener" class="llink">
-          View on GitHub ↗
+          View on GitHub<svg class="icon-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
         </a>
       </div>
 
-      <!-- LICENSE -->
-      <div class="lblock rev">
-        <div class="ltitle">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-          License
+      <div class="lblock will-animate">
+        <div class="ltitle"><span class="ltitle-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M16 13H8"/><path d="M16 17H8"/><path d="M10 9H8"/></svg></span> License</div>
+        <div class="lmono">
+          <p class="llicense-header"><strong>MIT Non-Commercial License</strong><br>QuickClip Pro Extension<br>Copyright (c) 2026 akasumitlamba</p>
+          <p>Permission is granted, free of charge, to use, modify, and redistribute for non-commercial purposes only, subject to:</p>
+          <p><strong>1. NON-COMMERCIAL USE</strong> May not be used for commercial purposes, including selling, licensing, or distributing for profit, as part of a commercial product, or in a paid SaaS offering.</p>
+          <p><strong>2. NO SIMILAR PUBLIC COPIES</strong> You may not publish derivative works on any platform (Chrome Web Store, Edge Add-ons, Firefox, app stores) whether free or paid, without written permission.</p>
+          <p><strong>3. ATTRIBUTION</strong> Copyright notice must be included in all copies. Credit must be given to the original author.</p>
+          <p><strong>4. MODIFICATION</strong> Free to modify for personal or private use. Modified versions may not be publicly distributed without written permission from the original author.</p>
+          <p><strong>5. NO WARRANTY</strong> THE SOFTWARE IS PROVIDED "AS IS". IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM OR DAMAGES.</p>
+          <p><strong>6. TERMINATION</strong> Breach of any condition automatically terminates your rights under this license.</p>
+          <p>Last updated: April 2026.</p>
         </div>
-        <div class="lmono"><strong>MIT Non-Commercial License
-QuickClip Sidebar aka QuickClip Pro Extension</strong>
-
-Copyright (c) 2026 akasumitlamba
-https://github.com/akasumitlamba
-
-Permission is hereby granted, free of charge, to any person
-obtaining a copy of this software and associated documentation
-files (the "Software"), to use, modify, and redistribute the
-Software for non-commercial purposes only, subject to the
-following conditions:
-
-<strong>1. NON-COMMERCIAL USE</strong>
-   The Software may not be used for any commercial purpose,
-   including but not limited to selling, licensing, or
-   distributing the Software or any derivative works for
-   profit or as part of a commercial product or service.
-   This includes charging users to access it, using it in a
-   paid SaaS offering, or bundling it into commercial
-   software distributions.
-
-<strong>2. PROHIBITION ON SIMILAR COPIES FOR PUBLIC USE</strong>
-   You may not create similar copies, derivative works, or
-   adaptations of the Software and make them available for
-   public use on any platform - including browser extension
-   stores (Chrome Web Store, Edge Add-ons, Firefox Add-ons),
-   app stores, or any distribution channel - whether free
-   or paid - without written permission from the author.
-
-<strong>3. ATTRIBUTION</strong>
-   The above copyright notice and this permission notice
-   shall be included in all copies or substantial portions
-   of the Software. Appropriate credit must be given to the
-   original author (akasumitlamba) in any work that uses or
-   derives from this Software.
-
-<strong>4. MODIFICATION</strong>
-   You are free to modify the Software for personal, private,
-   or non-commercial internal use. Modified versions may not
-   be publicly distributed without written permission from
-   the original author.
-
-<strong>5. NO WARRANTY</strong>
-   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF
-   ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED
-   TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A
-   PARTICULAR PURPOSE, AND NONINFRINGEMENT. IN NO EVENT
-   SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY
-   CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
-   OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR
-   IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
-   DEALINGS IN THE SOFTWARE.
-
-<strong>6. TERMINATION</strong>
-   Any breach of the conditions above automatically
-   terminates your rights under this license. The copyright
-   holder reserves the right to pursue legal remedies for
-   any violations.
-
-Last updated: August 4th, 2026, 12:11 AM IST</div>
-
         <a href="https://github.com/akasumitlamba/QuickClipPro/blob/main/LICENCE.md" target="_blank" rel="noopener" class="llink">
-          View on GitHub ↗
+          View on GitHub<svg class="icon-ext" viewBox="0 0 24 24" fill="none" stroke="currentColor" aria-hidden="true"><path stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M18 13v6a2 2 0 01-2 2H5a2 2 0 01-2-2V8a2 2 0 012-2h6M15 3h6v6M10 14L21 3"/></svg>
         </a>
       </div>
 
@@ -870,7 +1278,7 @@ Last updated: August 4th, 2026, 12:11 AM IST</div>
 <footer id="pfooter">
   <div class="finner">
     <a href="#hero" class="flogo">
-      <img src="icons/quickclippro.png" alt="QuickClip Pro" onerror="this.style.display='none'">
+      <div class="flogo-icon"><img src="icons/quickclippro.png" alt="QuickClip Pro" width="16" height="16" style="object-fit:contain;border-radius:3px;" onerror="imgIconFallback(this,'bolt')"></div>
       <span>QuickClip <em>Pro</em></span>
     </a>
     <ul class="flinks">
@@ -882,105 +1290,241 @@ Last updated: August 4th, 2026, 12:11 AM IST</div>
       <li><a href="https://www.linkedin.com/in/akasumitlamba/" target="_blank" rel="noopener">LinkedIn</a></li>
       <li><a href="mailto:akasumitlamba@gmail.com">Contact</a></li>
     </ul>
-    <span class="fcopy">© 2026 akasumitlamba · MIT Non-Commercial License</span>
+    <span class="fcopy">© 2026 akasumitlamba · MIT Non-Commercial</span>
   </div>
 </footer>
 
+<!-- ════════════════════════════════
+     VANILLA MOTION ANIMATIONS
+     (no build step — works on GitHub Pages)
+════════════════════════════════ -->
 <script>
-// ── scroll progress
+(function () {
+  const FB = {
+    bolt: '<path stroke-linecap="round" stroke-linejoin="round" d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>',
+    clipboard: '<path d="M16 4h2a2 2 0 012 2v14a2 2 0 01-2 2H6a2 2 0 01-2-2V6a2 2 0 012-2h2"/><path d="M9 2h6a1 1 0 011 1v2H8V3a1 1 0 011-1z"/>',
+    video: '<path d="M23 7l-7 5 7 5V7z"/><rect x="2" y="5" width="14" height="14" rx="2" ry="2"/>',
+    mic: '<path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/>',
+    keyboard: '<rect x="2" y="4" width="20" height="16" rx="2" ry="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01"/><path d="M6 12h.01M10 12h.01M14 12h.01M18 12h.01"/><path d="M7 16h10"/>'
+  };
+  window.imgIconFallback = function (img, key) {
+    const inner = FB[key];
+    if (!inner) return;
+    const span = document.createElement('span');
+    span.className = 'icon-img-fb';
+    span.setAttribute('aria-hidden', 'true');
+    span.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' + inner + '</svg>';
+    img.replaceWith(span);
+  };
+})();
+
+const { animate, inView } = Motion;
+
+/* ── Scroll progress bar + nav state (plain scroll listener, no Motion.scroll) ── */
 const spbar = document.getElementById('spbar');
+const nav   = document.getElementById('pnav');
+
 window.addEventListener('scroll', () => {
-  spbar.style.transform = `scaleX(${Math.min(window.scrollY / (document.body.scrollHeight - innerHeight), 1)})`;
+  const scrolled = window.scrollY;
+  const total    = document.body.scrollHeight - window.innerHeight;
+  const progress = total > 0 ? scrolled / total : 0;
+  spbar.style.transform = `scaleX(${progress})`;
+  nav.classList.toggle('scrolled', scrolled > 30);
 }, { passive: true });
 
-// ── IntersectionObserver - .rev, .dblock, .gcard
-const io = new IntersectionObserver(entries => {
-  entries.forEach(e => {
-    if (!e.isIntersecting) return;
-    const siblings = [...e.target.parentElement.children];
-    e.target.style.transitionDelay = (siblings.indexOf(e.target) % 4) * 75 + 'ms';
-    e.target.classList.add('vis');
-    io.unobserve(e.target);
+/* ── Hero entrance — staggered cascade ── */
+(function heroEntrance() {
+  const els = [
+    { id: 'h-kicker', delay: 0 },
+    { id: 'h-h1',     delay: 0.14 },
+    { id: 'h-sub',    delay: 0.28 },
+    { id: 'h-btns',   delay: 0.42 },
+    { id: 'h-stats',  delay: 0.58 },
+  ];
+  els.forEach(({ id, delay }) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(28px)';
+    setTimeout(() => {
+      animate(el,
+        { opacity: [0, 1], y: [28, 0] },
+        { duration: 0.85, easing: [0.22, 1, 0.36, 1] }
+      );
+    }, delay * 1000);
   });
-}, { threshold: 0.08, rootMargin: '0px 0px -36px 0px' });
+})();
 
-document.querySelectorAll('.rev, .dblock, .gcard').forEach(el => io.observe(el));
+/* ── Hero parallax on scroll (plain rAF, no Motion.scroll) ── */
+(function heroParallax() {
+  const hero  = document.getElementById('hero');
+  const inner = hero.querySelectorAll('.h-kicker, .h-h1, .h-sub, .h-btns, .h-stats');
+  let ticking = false;
+  window.addEventListener('scroll', () => {
+    if (ticking) return;
+    requestAnimationFrame(() => {
+      const heroH   = hero.offsetHeight;
+      const scrollY = window.scrollY;
+      const progress = Math.min(scrollY / heroH, 1);
+      const yShift   = progress * 80;
+      const op       = 1 - progress * 1.4;
+      inner.forEach(el => {
+        el.style.transform = `translateY(${yShift}px)`;
+        el.style.opacity   = Math.max(op, 0);
+      });
+      ticking = false;
+    });
+    ticking = true;
+  }, { passive: true });
+})();
 
-// ── demo snippet data
-const DS = [
-  { text: 'https://github.com/akasumitlamba/QuickClipPro',   tag: 'created',  tc: '#10B981', tb: '#ECFDF5', tbd: '#0A2E1F' },
-  { text: 'Review PR #42 before 5pm - check Figma for spec', tag: 'note',     tc: '#F59E0B', tb: '#FFFBEB', tbd: '#2E2610' },
-  { text: 'SELECT * FROM users WHERE active = 1 LIMIT 50;',  tag: 'reopened', tc: '#6366F1', tb: '#EEF2FF', tbd: '#1A1D3A' },
-  { text: 'npm run build && npm run deploy:prod',             tag: 'teal',     tc: '#14B8A6', tb: '#F0FDFA', tbd: '#0A2E2A' },
-  { text: 'API key: sk-xxxxxxxxxxxxxxxxxxx (rotate weekly)',  tag: 'closed',   tc: '#EF4444', tb: '#FEF2F2', tbd: '#2E1215' },
-];
+/* ── Generic scroll-reveal with stagger ── */
+function revealGroup(selector, options = {}) {
+  const {
+    y = 30, duration = 0.7, delay = 0, staggerDelay = 0.08
+  } = options;
 
-function mkCard(s, dark) {
-  const bg   = dark ? '#1A1D27' : '#FFFFFF';
-  const bord = dark ? '#2E3344' : '#E2E5EA';
-  const txt  = dark ? '#E8EAF0' : '#1A1D23';
-  const sub  = dark ? '#8B93A7' : '#6B7280';
-  const hov  = dark ? '#2A2F3F' : '#F0F1F4';
-  const tBg  = dark ? s.tbd     : s.tb;
-  const body = s.text.replace(/(https?:\/\/[^\s]+)/g,
-    `<a href="$1" target="_blank" rel="noopener" style="color:#6366F1;word-break:break-all;text-decoration:underline;">$1</a>`);
-  const min  = String(Math.floor(Math.random()*60)).padStart(2,'0');
-  return `<div data-txt="${s.text.replace(/"/g,'&quot;')}" style="background:${bg};border:1px solid ${bord};border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;transition:background 0.15s;" onmouseover="this.style.background='${hov}'" onmouseout="this.style.background='${bg}'">
-    <div style="font-size:11.5px;color:${txt};line-height:1.5;">${body}</div>
-    <div style="display:flex;align-items:center;gap:5px;">
-      <span style="font-size:9px;font-weight:600;color:${s.tc};background:${tBg};padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:0.06em;">${s.tag}</span>
-      <span style="font-size:9px;color:${sub};margin-left:auto;">Today, 14:${min}</span>
-      <button title="Copy" onclick="var b=this;navigator.clipboard.writeText(this.closest('[data-txt]').dataset.txt).then(()=>{b.textContent='✓';setTimeout(()=>b.textContent='📋',1300)})" style="background:none;border:none;cursor:pointer;font-size:12px;padding:1px 3px;">📋</button>
-      <button title="Delete" onclick="this.closest('[data-txt]').remove()" style="background:none;border:none;cursor:pointer;font-size:12px;padding:1px 3px;">🗑️</button>
-    </div>
-  </div>`;
-}
-
-// populate all demo lists
-const dl1 = document.getElementById('dl1');
-const dl2 = document.getElementById('dl2');
-const dl3 = document.getElementById('dl3');
-DS.slice(0,3).forEach(s => dl1.insertAdjacentHTML('beforeend', mkCard(s, false)));
-DS.forEach(s => dl2.insertAdjacentHTML('beforeend', mkCard(s, false)));
-DS.forEach(s => dl3.insertAdjacentHTML('beforeend', mkCard(s, true)));
-
-// save in demo 1
-function demoSave(taId, listId, dark) {
-  const ta = document.getElementById(taId);
-  const t = ta.value.trim(); if (!t) return;
-  const tags = ['created','note','reopened','teal'];
-  const s = DS[0]; // reuse colors
-  const card = mkCard({ text: t, tag: 'created', tc: '#10B981', tb: '#ECFDF5', tbd: '#0A2E1F' }, dark);
-  document.getElementById(listId).insertAdjacentHTML('afterbegin', card);
-  ta.value = '';
-}
-
-// filter demo 2
-function demoFilter() {
-  const q = document.getElementById('dsearch').value.toLowerCase();
-  document.querySelectorAll('#dl2 > div').forEach(c => {
-    c.style.display = c.textContent.toLowerCase().includes(q) ? '' : 'none';
+  document.querySelectorAll(selector).forEach((el, i) => {
+    el.style.opacity = '0';
+    el.style.transform = `translateY(${y}px)`;
+    inView(el, () => {
+      animate(el,
+        { opacity: [0, 1], y: [y, 0] },
+        {
+          duration,
+          delay: delay + i * staggerDelay,
+          easing: [0.22, 1, 0.36, 1]
+        }
+      );
+    }, { amount: 0.1, margin: '-40px' });
   });
 }
 
-// share extension link
+/* Products section header */
+revealGroup('#products .prod-header > div', { staggerDelay: 0.1 });
+
+/* Product cards — staggered */
+revealGroup('.pcard', { y: 36, duration: 0.65, staggerDelay: 0.07 });
+
+/* Section eyebrows + titles in demos, guide, legal */
+revealGroup('#demos .eyebrow, #demos .stitle, #demos .slead',   { staggerDelay: 0.08 });
+revealGroup('#guide .eyebrow, #guide .stitle',                   { staggerDelay: 0.08 });
+revealGroup('#legal .eyebrow, #legal .stitle, #legal .slead',   { staggerDelay: 0.08 });
+
+/* Demo blocks */
+document.querySelectorAll('.dblock').forEach((el, i) => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(40px)';
+  inView(el, () => {
+    animate(el,
+      { opacity: [0, 1], y: [40, 0] },
+      { duration: 0.8, delay: (i % 2) * 0.12, easing: [0.22, 1, 0.36, 1] }
+    );
+  }, { amount: 0.08, margin: '-30px' });
+});
+
+/* Guide cards — staggered by column */
+document.querySelectorAll('.gcard').forEach((el, i) => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(26px) scale(0.98)';
+  inView(el, () => {
+    animate(el,
+      { opacity: [0, 1], y: [26, 0], scale: [0.98, 1] },
+      { duration: 0.65, delay: (i % 3) * 0.07, easing: [0.22, 1, 0.36, 1] }
+    );
+  }, { amount: 0.1, margin: '-30px' });
+});
+
+/* Legal blocks */
+document.querySelectorAll('.lblock').forEach((el, i) => {
+  el.style.opacity = '0';
+  el.style.transform = 'translateY(30px)';
+  inView(el, () => {
+    animate(el,
+      { opacity: [0, 1], y: [30, 0] },
+      { duration: 0.75, delay: i * 0.1, easing: [0.22, 1, 0.36, 1] }
+    );
+  }, { amount: 0.06, margin: '-20px' });
+});
+
+/* ── Product card hover glow + lift ── */
+document.querySelectorAll('.pcard').forEach(card => {
+  card.addEventListener('mouseenter', () => {
+    animate(card, { scale: 1.015 }, { duration: 0.3, easing: [0.22, 1, 0.36, 1] });
+  });
+  card.addEventListener('mouseleave', () => {
+    animate(card, { scale: 1 }, { duration: 0.3, easing: [0.22, 1, 0.36, 1] });
+  });
+});
+
+/* ── Demo frame hover lift ── */
+document.querySelectorAll('.eframe').forEach(frame => {
+  frame.addEventListener('mouseenter', () => {
+    animate(frame, { y: -5, scale: 1.012 }, { duration: 0.35, easing: [0.22, 1, 0.36, 1] });
+  });
+  frame.addEventListener('mouseleave', () => {
+    animate(frame, { y: 0, scale: 1 }, { duration: 0.35, easing: [0.22, 1, 0.36, 1] });
+  });
+});
+
+/* ── Nav link micro-animations ── */
+document.querySelectorAll('.nav-list a:not(.nav-cta)').forEach(a => {
+  a.addEventListener('mouseenter', () => animate(a, { y: -1 }, { duration: 0.15 }));
+  a.addEventListener('mouseleave', () => animate(a, { y: 0  }, { duration: 0.15 }));
+});
+
+/* ── Button press feedback ── */
+document.querySelectorAll('.btn').forEach(btn => {
+  btn.addEventListener('mousedown', () => animate(btn, { scale: 0.97 }, { duration: 0.1 }));
+  btn.addEventListener('mouseup',   () => animate(btn, { scale: 1    }, { duration: 0.2, easing: [0.22,1,0.36,1] }));
+  btn.addEventListener('mouseleave',() => animate(btn, { scale: 1    }, { duration: 0.2 }));
+});
+
+/* ── Stat counter animation ── */
+function animateCounter(el, target, suffix = '') {
+  const isText = isNaN(parseFloat(target));
+  if (isText) return; // skip non-numeric
+  const num = parseFloat(target);
+  let start = null;
+  const duration = 1400;
+  function step(ts) {
+    if (!start) start = ts;
+    const p = Math.min((ts - start) / duration, 1);
+    const eased = 1 - Math.pow(1 - p, 3); // ease-out cubic
+    el.textContent = Math.round(eased * num) + suffix;
+    if (p < 1) requestAnimationFrame(step);
+    else el.textContent = target + suffix;
+  }
+  requestAnimationFrame(step);
+}
+
+const statVals = document.querySelectorAll('.h-stat-val');
+let statsAnimated = false;
+inView('#hero', () => {
+  if (statsAnimated) return;
+  statsAnimated = true;
+  setTimeout(() => {
+    statVals.forEach(el => {
+      const raw = el.textContent.trim();
+      if (raw === '100%') animateCounter(el, 100, '%');
+      else if (raw === '0') animateCounter(el, 0, '');
+    });
+  }, 700);
+}, { amount: 0.3 });
+
+/* ── Share extension link ── */
 function shareExtension(btn) {
-  const extensionUrl = 'https://chromewebstore.google.com/detail/quickclip-pro-sidebar-clipb/ndibnfgbmcfgoeapohknfeeiilgfhdjg';
-  navigator.clipboard.writeText(extensionUrl).then(() => {
-    // Show success confirmation
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20,6 9,17 4,12"/></svg> Copied to clipboard!';
-    setTimeout(() => {
-      btn.innerHTML = originalText;
-    }, 2000);
-  }).catch(err => {
-    console.error('Failed to copy: ', err);
-    // Show error message
-    const originalText = btn.innerHTML;
-    btn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg> Failed to copy';
-    setTimeout(() => {
-      btn.innerHTML = originalText;
-    }, 2000);
+  const url = 'https://chromewebstore.google.com/detail/quickclip-pro-sidebar-clipb/ndibnfgbmcfgoeapohknfeeiilgfhdjg';
+  const orig = btn.innerHTML;
+  const okSvg = '<span class="btn-flash-msg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>Copied to clipboard!</span>';
+  const failSvg = '<span class="btn-flash-msg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M15 9l-6 6M9 9l6 6"/></svg>Failed — copy manually</span>';
+  navigator.clipboard.writeText(url).then(() => {
+    btn.innerHTML = okSvg;
+    animate(btn, { scale: [0.96, 1] }, { duration: 0.3, easing: [0.22, 1, 0.36, 1] });
+    setTimeout(() => { btn.innerHTML = orig; }, 2200);
+  }).catch(() => {
+    btn.innerHTML = failSvg;
+    setTimeout(() => { btn.innerHTML = orig; }, 2200);
   });
 }
 </script>
