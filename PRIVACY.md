@@ -1,6 +1,6 @@
 # QuickClip-Pro Privacy Policy
 
-**Last Updated:** August 2025
+**Last Updated:** April 2026
 
 ## Privacy First
 
