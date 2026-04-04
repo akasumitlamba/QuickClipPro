@@ -1,11 +1,6 @@
 <div align="center">
-
-
-
  
 # QuickClip Pro
-
-V3 Work in progress
 
 </div>
 
@@ -84,7 +79,7 @@ Access settings by clicking the ⚙️ icon in the extension popup:
 
 - All data (**counters, snippets, settings**) is stored **locally** in your browser.
 - Links in snippets are **automatically detected** and made clickable for convenience.
-- Data persists between browser sessions but may be lost if browser data is cleared—**export regularly** to avoid data loss.
+- Data persists between browser sessions but may be lost if browser data is cleared-**export regularly** to avoid data loss.
 
 ## Contributing
 
@@ -102,4 +97,8 @@ Developed by **[akasumitlamba](https://github.com/akasumitlamba)**.
 
 ## License
 
-This project is licensed under the **MIT License**. See the [LICENSE](LICENSE) file for details.
+This project is licensed under the terms in **[LICENCE.md](LICENCE.md)** (non-commercial; see file for full text).
+
+## Legal
+
+- [Privacy Policy](PRIVACY.md) - last reviewed **April 2026**.
