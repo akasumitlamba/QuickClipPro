@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "QuickClip Pro",
   "version": "3.0",
-  "description": "A Sidebar Clipboard Manager for Chromium-based Browsers with Enhanced Features and Customization - TAGS, IMAGES, Links, Counters and MORE!",
+  "description": "Best Clipboard Manager for Chromium with TAGS, IMAGES, Links, Counters and more.",
   "background": {
     "service_worker": "background.js"
   },
