@@ -6,6 +6,18 @@ let isRecovering = false;
 let hasRecovered = false;
 let isInitialLoad = true; // Flag to skip animations on startup
 
+// Default tags — global so all functions (including those outside DOMContentLoaded) can access them
+const defaultTags = [
+  { id: 'reopened', name: 'Re-Opened', colorId: 'reopened', active: true },
+  { id: 'closed', name: 'Closed', colorId: 'closed', active: true },
+  { id: 'note', name: 'Note', colorId: 'note', active: true },
+  { id: 'created', name: 'Created', colorId: 'created', active: true },
+  { id: 'todo', name: 'TODO', colorId: 'gray', active: false },
+  { id: 'flag', name: 'Flag', colorId: 'purple', active: false },
+  { id: 'tba', name: 'TBA', colorId: 'pink', active: false },
+  { id: 'na', name: 'N/A', colorId: 'teal', active: false }
+];
+
 /** Snippet header: locale date + 12h time as HH:MM with uppercase AM/PM */
 function formatSnippetHeaderTimestamp(ts) {
   const d = new Date(ts);
@@ -25,7 +37,7 @@ function formatSnippetHeaderTimestamp(ts) {
   return `${datePart}, ${hh}:${mm} ${ampm}`;
 }
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   const snippetText = document.getElementById('snippetText');
   const inputCard = document.querySelector('.card');
   const inputControlsRow = document.querySelector('.input-controls-row');
@@ -61,33 +73,33 @@ document.addEventListener('DOMContentLoaded', function() {
       Recover
     </button>
   `;
-  
+
   // Add to document body instead of after filter row
   document.body.appendChild(recoveryButtonContainer);
 
   let currentImageDataUrl = null; // Store image as data URL
-  
+
   // Image upload handling
   if (imageUpload) {
-    imageUpload.addEventListener('change', function(e) {
+    imageUpload.addEventListener('change', function (e) {
       const file = e.target.files[0];
       if (file && file.type.match('image.*')) {
         const reader = new FileReader();
-        
-        reader.onload = function(e) {
+
+        reader.onload = function (e) {
           currentImageDataUrl = e.target.result;
           imagePreview.src = currentImageDataUrl;
           imagePreviewContainer.style.display = 'block';
         };
-        
+
         reader.readAsDataURL(file);
       }
     });
   }
-  
+
   // Remove image button
   if (removeImageBtn) {
-    removeImageBtn.addEventListener('click', function() {
+    removeImageBtn.addEventListener('click', function () {
       currentImageDataUrl = null;
       imagePreview.src = '';
       imagePreviewContainer.style.display = 'none';
@@ -98,29 +110,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Tag management functionality
   const addTagBtn = document.getElementById('addTagBtn');
   const tagsList = document.getElementById('tagsList');
-  
-  console.log("DOM elements initialized:");
-  console.log("- addTagBtn:", addTagBtn);
-  console.log("- tagsList:", tagsList);
-  console.log("- settingsModal:", settingsModal);
-  
-  // Only initialize tag management if elements are found
-  if (tagsList) {
-    console.log("Tag management elements found, initializing...");
-    
-    // Initialize tags when popup opens
-    loadTags();
-    
-    // Add event listener for adding new tag
-    if (addTagBtn) {
-      addTagBtn.addEventListener('click', addNewTag);
-    }
-  } else {
-    console.error("Tag management elements not found! Make sure the HTML contains the required elements.");
-  }
 
   // Initialize counter and snippets from storage
-  chrome.storage.local.get(['counter', 'snippets', 'snippetTextHeight', 'lastSelectedTagForNewSnippet', 'extensionTheme'], function(result) {
+  chrome.storage.local.get(['counter', 'snippets', 'snippetTextHeight', 'lastSelectedTagForNewSnippet', 'extensionTheme'], function (result) {
     document.getElementById('counter').textContent = result.counter || 0;
     if (result.snippets) {
       displaySnippets(result.snippets);
@@ -128,10 +120,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Restore textarea height
     if (result.snippetTextHeight && snippetText) {
-      snippetText.style.height = result.snippetTextHeight;
-    }
-    // Always restore height if possible
-    if (snippetText && !snippetText.style.height && result.snippetTextHeight) {
       snippetText.style.height = result.snippetTextHeight;
     }
 
@@ -149,7 +137,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const theme = result.extensionTheme || 'light';
     if (themeSelect) themeSelect.value = theme;
     applyTheme(theme);
-    
+
     // Remove preload and set initial load to false after startup rendering
     requestAnimationFrame(() => {
       document.body.classList.remove('preload');
@@ -157,34 +145,31 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   });
 
-  // Save textarea height on mouseup (after potential resize)
+  // Save textarea height on resize (mouseup) and when sidebar closes
   if (snippetText) {
-    snippetText.addEventListener('mouseup', function() {
+    snippetText.addEventListener('mouseup', function () {
       chrome.storage.local.set({ snippetTextHeight: this.style.height });
     });
-    snippetText.addEventListener('input', function() {
-      chrome.storage.local.set({ snippetTextHeight: this.style.height });
-    });
-    window.addEventListener('beforeunload', function() {
+    window.addEventListener('beforeunload', function () {
       chrome.storage.local.set({ snippetTextHeight: snippetText.style.height });
     });
-    snippetText.addEventListener('blur', function() {
+    snippetText.addEventListener('blur', function () {
       chrome.storage.local.set({ snippetTextHeight: snippetText.style.height });
     });
   }
 
   // Counter controls
-  document.getElementById('incrementBtn').addEventListener('click', function() {
+  document.getElementById('incrementBtn').addEventListener('click', function () {
     updateCounter(1);
   });
 
-  document.getElementById('decrementBtn').addEventListener('click', function() {
+  document.getElementById('decrementBtn').addEventListener('click', function () {
     updateCounter(-1);
   });
 
   // Reset button
-  document.getElementById('resetBtn').addEventListener('click', function() {
-    chrome.storage.local.set({ counter: 0 }, function() {
+  document.getElementById('resetBtn').addEventListener('click', function () {
+    chrome.storage.local.set({ counter: 0 }, function () {
       document.getElementById('counter').textContent = '0';
     });
   });
@@ -193,7 +178,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function applyTagStyling(selectedTag) {
     const imageUploadBtn = document.querySelector('.image-upload-btn');
     const elementsToTheme = [inputCard, snippetText, tagSelectTrigger, inputControlsRow, imageUploadBtn];
-    
+
     // Remove all existing tag classes
     elementsToTheme.forEach(el => {
       if (el) {
@@ -205,23 +190,23 @@ document.addEventListener('DOMContentLoaded', function() {
         });
       }
     });
-    
+
     // Apply new tag styling if a tag is selected
-        if (selectedTag) {
-      chrome.storage.local.get(['customTags'], function(result) {
+    if (selectedTag) {
+      chrome.storage.local.get(['customTags'], function (result) {
         const tags = result.customTags || defaultTags;
         const tag = tags.find(t => t.id === selectedTag);
-        
+
         if (tag) {
           const colorId = tag.colorId;
-          
+
           elementsToTheme.forEach(el => {
             if (el) {
               el.classList.add(`bg-${colorId}`);
-        }
+            }
           });
-      }
-    });
+        }
+      });
     }
   }
 
@@ -232,7 +217,7 @@ document.addEventListener('DOMContentLoaded', function() {
     trigger.addEventListener('click', (e) => {
       e.stopPropagation();
       const isOpen = trigger.parentElement.classList.contains('open');
-      
+
       // Close all other dropdowns first
       document.querySelectorAll('.custom-dropdown').forEach(d => d.classList.remove('open'));
       document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
@@ -256,10 +241,10 @@ document.addEventListener('DOMContentLoaded', function() {
   setupCustomDropdown(tagFilterTrigger, tagFilterMenu, tagFilterInput);
 
   // Save snippet
-  document.getElementById('saveSnippet').addEventListener('click', function() {
+  document.getElementById('saveSnippet').addEventListener('click', function () {
     const text = snippetText.value.trim();
     const tag = tagSelectInput.value; // This is the currently selected tag
-    
+
     if (text || currentImageDataUrl) {
       savePastedData(text, currentImageDataUrl, tag);
     } else {
@@ -268,8 +253,8 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Search Input
-  const searchInput = document.getElementById('searchSnippets'); 
-  searchInput.addEventListener('input', function() {
+  const searchInput = document.getElementById('searchSnippets');
+  searchInput.addEventListener('input', function () {
     applyFilters();
   });
 
@@ -285,7 +270,7 @@ document.addEventListener('DOMContentLoaded', function() {
       tagFilterTrigger.classList.forEach(c => {
         if (c.startsWith('bg-')) tagFilterTrigger.classList.remove(c);
       });
-      
+
       if (searchInput) searchInput.value = '';
       const dateFilterInput = document.getElementById('dateFilter');
       if (dateFilterInput) {
@@ -309,8 +294,8 @@ document.addEventListener('DOMContentLoaded', function() {
   const clearDateBtn = document.getElementById('clearDateBtn');
   const calendarFormatHint = document.getElementById('calendarFormatHint');
 
-  let currentViewDate = new Date(); 
-  let activeDatesSet = new Set();   
+  let currentViewDate = new Date();
+  let activeDatesSet = new Set();
 
   function formatYMD(dateObj) {
     const y = dateObj.getFullYear();
@@ -322,7 +307,7 @@ document.addEventListener('DOMContentLoaded', function() {
   function renderCalendar(year, month) {
     if (!calendarGrid) return;
     calendarGrid.innerHTML = '';
-    
+
     const firstDayStr = new Date(year, month, 1);
     const firstDayIndex = firstDayStr.getDay();
     const daysInMonth = new Date(year, month + 1, 0).getDate();
@@ -341,13 +326,13 @@ document.addEventListener('DOMContentLoaded', function() {
       calendarGrid.appendChild(dayDiv);
     }
 
-    chrome.storage.local.get(['snippets'], function(result) {
+    chrome.storage.local.get(['snippets'], function (result) {
       activeDatesSet.clear();
       (result.snippets || []).forEach(snip => {
-         if (snip.timestamp) {
-           const ymd = new Date(snip.timestamp).toLocaleDateString('en-CA');
-           activeDatesSet.add(ymd);
-         }
+        if (snip.timestamp) {
+          const ymd = new Date(snip.timestamp).toLocaleDateString('en-CA');
+          activeDatesSet.add(ymd);
+        }
       });
 
       for (let i = 1; i <= daysInMonth; i++) {
@@ -358,7 +343,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const dayDiv = document.createElement('div');
         dayDiv.className = 'calendar-day' + (isFuture ? ' disabled' : '');
         dayDiv.textContent = i;
-        
+
         if (ymdStr === todayStr) dayDiv.classList.add('today');
         if (ymdStr === selectedExactStr) dayDiv.classList.add('active');
         if (activeDatesSet.has(ymdStr)) dayDiv.classList.add('has-snippets');
@@ -368,7 +353,7 @@ document.addEventListener('DOMContentLoaded', function() {
             dateFilterInput.dataset.value = ymdStr;
             const shortMonth = monthNames[month].substring(0, 3);
             dateFilterInput.value = `${i} ${shortMonth}`;
-            
+
             calendarDropdown.classList.add('hidden');
             if (clearDateBtn) clearDateBtn.classList.remove('hidden');
             if (calendarFormatHint) calendarFormatHint.classList.add('hidden');
@@ -449,13 +434,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Allow pasting images with keyboard (Ctrl+V) on the text area
   if (snippetText) {
-    snippetText.addEventListener('paste', async function(e) {
+    snippetText.addEventListener('paste', async function (e) {
       // Don't prevent default to allow text pasting to still work normally
-      
+
       // Check if clipboard has an image
       try {
         const clipboardItems = await navigator.clipboard.read();
-        
+
         for (const item of clipboardItems) {
           const imageType = item.types.find(type => type.startsWith('image/'));
           if (imageType) {
@@ -463,13 +448,13 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault(); // Now prevent default since we'll handle it
             const blob = await item.getType(imageType);
             const reader = new FileReader();
-            
-            reader.onload = function(e) {
+
+            reader.onload = function (e) {
               currentImageDataUrl = e.target.result;
               imagePreview.src = currentImageDataUrl;
               imagePreviewContainer.style.display = 'block';
             };
-            
+
             reader.readAsDataURL(blob);
             return; // Exit after processing the first image
           }
@@ -482,7 +467,7 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 
   // Make the paste and save function more reliable for combined text & images
-  document.getElementById('pasteSaveSnippet').addEventListener('click', async function() {
+  document.getElementById('pasteSaveSnippet').addEventListener('click', async function () {
     const tag = tagSelectInput.value;
     let textToSave = snippetText.value; // Preserve existing text if any
     let imageToSave = currentImageDataUrl;
@@ -497,7 +482,7 @@ document.addEventListener('DOMContentLoaded', function() {
           try {
             const htmlBlob = await item.getType('text/html');
             const htmlStr = await htmlBlob.text();
-            
+
             // Extract image data URL from the HTML string
             const imgMatch = htmlStr.match(/<img[^>]+src="([^">]+)"/i);
             if (imgMatch && imgMatch[1].startsWith('data:image/')) {
@@ -511,14 +496,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // 2. Check for plain text
         if (item.types.includes('text/plain') && !textToSave.trim()) {
-           try {
-             const textBlob = await item.getType('text/plain');
-             const text = await textBlob.text();
-             if (text.trim()) {
-               textToSave = text.trim();
-               snippetText.value = textToSave;
-             }
-           } catch (e) { console.error('Error parsing text/plain clipboard', e); }
+          try {
+            const textBlob = await item.getType('text/plain');
+            const text = await textBlob.text();
+            if (text.trim()) {
+              textToSave = text.trim();
+              snippetText.value = textToSave;
+            }
+          } catch (e) { console.error('Error parsing text/plain clipboard', e); }
         }
 
         // 3. Check for dedicated image blob
@@ -526,14 +511,14 @@ document.addEventListener('DOMContentLoaded', function() {
         if (imageType && !imageToSave) {
           const blob = await item.getType(imageType);
           saveHandledAsync = true;
-          
+
           const reader = new FileReader();
-          reader.onload = function(e) {
+          reader.onload = function (e) {
             imageToSave = e.target.result;
             currentImageDataUrl = imageToSave;
             imagePreview.src = imageToSave;
             imagePreviewContainer.style.display = 'block';
-            
+
             savePastedData(textToSave.trim(), imageToSave, tag);
           };
           reader.readAsDataURL(blob);
@@ -550,9 +535,9 @@ document.addEventListener('DOMContentLoaded', function() {
               textToSave = text.trim();
               snippetText.value = textToSave;
             }
-          } catch(e) {}
+          } catch (e) { }
         }
-        
+
         if (textToSave.trim() || imageToSave) {
           savePastedData(textToSave.trim(), imageToSave, tag);
         } else {
@@ -561,14 +546,14 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     } catch (err) {
       console.error('Advanced clipboard API error:', err);
-      
+
       // Fallback to older clipboard methods - try to get an image via execCommand
       try {
         // Create a temporary textarea for fallback paste
         const tempTextarea = document.createElement('textarea');
         document.body.appendChild(tempTextarea);
         tempTextarea.focus();
-        
+
         const successful = document.execCommand('paste');
         if (successful) {
           // Check if an image was pasted into the textarea (browsers handle this differently)
@@ -584,10 +569,10 @@ document.addEventListener('DOMContentLoaded', function() {
             snippetText.value = textToSave;
           }
         }
-        
+
         // Remove the temporary element
         document.body.removeChild(tempTextarea);
-        
+
         // If we have content to save, do it
         if (textToSave.trim() || imageToSave) {
           savePastedData(textToSave.trim(), imageToSave, tag);
@@ -596,7 +581,7 @@ document.addEventListener('DOMContentLoaded', function() {
         }
       } catch (fallbackErr) {
         console.error('Fallback clipboard error:', fallbackErr);
-        
+
         // Ultimate fallback - just try to get text
         try {
           const text = await navigator.clipboard.readText();
@@ -619,8 +604,8 @@ document.addEventListener('DOMContentLoaded', function() {
   function savePastedData(text, image, tag) {
     if (!text && !image) return; // Nothing to save
 
-        chrome.storage.local.get(['snippets'], function(result) {
-          const snippets = result.snippets || [];
+    chrome.storage.local.get(['snippets'], function (result) {
+      const snippets = result.snippets || [];
       const newSnippet = {
         id: Date.now(),
         text: text || '',
@@ -629,33 +614,33 @@ document.addEventListener('DOMContentLoaded', function() {
         timestamp: new Date().toISOString(), // Use ISO format for consistency
         image: image
       };
-          snippets.unshift(newSnippet);
-          chrome.storage.local.set({ snippets: snippets }, function() {
+      snippets.unshift(newSnippet);
+      chrome.storage.local.set({ snippets: snippets }, function () {
         if (chrome.runtime.lastError) {
           console.error("Error saving pasted snippet:", chrome.runtime.lastError);
           showNotification('Error saving snippet.', 'error');
           return;
         }
-            snippetText.value = '';
+        snippetText.value = '';
         currentImageDataUrl = null;
         imagePreview.src = '';
         imagePreviewContainer.style.display = 'none';
         if (document.getElementById('imageUpload')) document.getElementById('imageUpload').value = '';
-            applyFilters();
-          });
-        });
-      }
+        applyFilters();
+      });
+    });
+  }
 
   // Open settings modal
-  settingsBtn.addEventListener('click', function() {
+  settingsBtn.addEventListener('click', function () {
     settingsModal.style.display = 'flex';
   });
   // Close settings modal
-  closeSettings.addEventListener('click', function() {
+  closeSettings.addEventListener('click', function () {
     settingsModal.style.display = 'none';
   });
   // Close modal on overlay click
-  settingsModal.addEventListener('click', function(e) {
+  settingsModal.addEventListener('click', function (e) {
     if (e.target === settingsModal) settingsModal.style.display = 'none';
   });
 
@@ -673,7 +658,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Keep hidden select in sync for backward compat
     if (themeSelect) themeSelect.value = theme;
   }
-  themeSelect.addEventListener('change', function() {
+  themeSelect.addEventListener('change', function () {
     const theme = themeSelect.value;
     applyTheme(theme);
     chrome.storage.local.set({ extensionTheme: theme });
@@ -704,9 +689,9 @@ document.addEventListener('DOMContentLoaded', function() {
     toggles.forEach(t => {
       // Only apply visibility toggles
       if (!t.selector) return;
-      
-      let show = settings[t.id] !== false; 
-        
+
+      let show = settings[t.id] !== false;
+
       if (t.all) {
         document.querySelectorAll(t.selector).forEach(el => el.classList.toggle('hidden', !show));
       } else {
@@ -723,18 +708,18 @@ document.addEventListener('DOMContentLoaded', function() {
         settings.toggleTagFilter !== false;
       filterHeader.classList.toggle('filter-header--line-only', !anyFilterVisible);
     }
-    
+
     // Add logic for input-controls-row layout
     const inputControlsRow = document.querySelector('.input-controls-row');
     if (inputControlsRow) {
       const saveButton = document.querySelector('#saveSnippet');
       const pasteButton = document.querySelector('#pasteSaveSnippet');
-      
+
       // Remove all layout classes first
       inputControlsRow.classList.remove('hide-save', 'hide-paste', 'hide-both');
-      
+
       if (saveButton && saveButton.classList.contains('hidden') &&
-          pasteButton && pasteButton.classList.contains('hidden')) {
+        pasteButton && pasteButton.classList.contains('hidden')) {
         inputControlsRow.classList.add('hide-both');
       }
     }
@@ -759,7 +744,7 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 
   // Restore toggles from storage
-  chrome.storage.local.get(toggles.map(t => t.id), function(settings) {
+  chrome.storage.local.get(toggles.map(t => t.id), function (settings) {
     toggles.forEach(t => {
       const cb = document.getElementById(t.id);
       if (cb) {
@@ -778,7 +763,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Initialize main counter in settings
   function initializeMainCounter() {
-    chrome.storage.local.get(['mainCounterName'], function(result) {
+    chrome.storage.local.get(['mainCounterName'], function (result) {
       const mainCounterName = result.mainCounterName || 'Main Counter';
       const mainCounter = document.createElement('div');
       mainCounter.className = 'counter-item main-counter';
@@ -801,7 +786,7 @@ document.addEventListener('DOMContentLoaded', function() {
           </div>
         </div>
       `;
-      
+
       // If countersList exists, append the main counter
       if (countersList) {
         // Clear any existing main counter
@@ -809,29 +794,29 @@ document.addEventListener('DOMContentLoaded', function() {
         if (existingMainCounter) {
           existingMainCounter.remove();
         }
-        
+
         // Add the new main counter at the beginning
         if (countersList.firstChild) {
           countersList.insertBefore(mainCounter, countersList.firstChild);
         } else {
           countersList.appendChild(mainCounter);
         }
-        
+
         // Update toggle button icon based on visibility
-        chrome.storage.local.get(['hiddenCounters'], function(result) {
+        chrome.storage.local.get(['hiddenCounters'], function (result) {
           const hiddenCounters = result.hiddenCounters || [];
           const isMainHidden = hiddenCounters.includes('main');
           const mainToggleBtn = mainCounter.querySelector('.toggle-counter');
-          
+
           if (mainToggleBtn) {
             updateToggleButtonIcon(mainToggleBtn, isMainHidden);
           }
         });
       }
-      
+
       return mainCounter;
     });
-    
+
     // Return a placeholder while the async operation completes
     const placeholder = document.createElement('div');
     placeholder.className = 'counter-item main-counter';
@@ -840,17 +825,17 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Load counters
   function loadCounters() {
-    chrome.storage.local.get(['additionalCounters', 'mainCounterName', 'hiddenCounters'], function(result) {
+    chrome.storage.local.get(['additionalCounters', 'mainCounterName', 'hiddenCounters'], function (result) {
       const counters = result.additionalCounters || [];
       const mainCounterName = result.mainCounterName || 'Main Counter';
       const hiddenCounters = result.hiddenCounters || [];
-      
+
       // Update main counter name in settings
       const mainCounterNameEl = document.querySelector('.main-counter .counter-name');
       if (mainCounterNameEl) {
         mainCounterNameEl.textContent = mainCounterName;
       }
-      
+
       // Update main counter name in header
       const counterTitle = document.querySelector('.logo-title b');
       if (counterTitle) {
@@ -859,13 +844,13 @@ document.addEventListener('DOMContentLoaded', function() {
         const logoTitle = counterTitle.parentElement;
         if (logoTitle) logoTitle.title = mainCounterName;
       }
-      
+
       // Update main counter visibility toggle icon (but don't hide the button!)
       const mainCounterToggle = document.querySelector('.main-counter .toggle-counter');
       if (mainCounterToggle) {
         updateToggleButtonIcon(mainCounterToggle, hiddenCounters.includes('main'));
       }
-      
+
       displayCountersList(counters);
       displayAdditionalCountersGrid(counters, hiddenCounters);
     });
@@ -874,14 +859,14 @@ document.addEventListener('DOMContentLoaded', function() {
   // Display counters in settings modal
   function displayCountersList(counters) {
     if (!countersList) return;
-    
+
     // Clear the list except for the main counter which will be updated by initializeMainCounter
     const existingItems = countersList.querySelectorAll('.counter-item:not(.main-counter)');
     existingItems.forEach(item => item.remove());
-    
+
     // Initialize or update the main counter
     initializeMainCounter();
-    
+
     // Add additional counters
     counters.forEach(counter => {
       const counterItem = document.createElement('div');
@@ -911,13 +896,13 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
       `;
       countersList.appendChild(counterItem);
-      
+
       // Update toggle button icon based on visibility
-      chrome.storage.local.get(['hiddenCounters'], function(result) {
+      chrome.storage.local.get(['hiddenCounters'], function (result) {
         const hiddenCounters = result.hiddenCounters || [];
         const isHidden = hiddenCounters.includes(counter.id);
         const toggleBtn = counterItem.querySelector('.toggle-counter');
-        
+
         if (toggleBtn) {
           updateToggleButtonIcon(toggleBtn, isHidden);
         }
@@ -951,9 +936,9 @@ document.addEventListener('DOMContentLoaded', function() {
   // Display additional counters in grid
   function displayAdditionalCountersGrid(counters, hiddenCounters) {
     if (!additionalCountersGrid) return;
-    
+
     additionalCountersGrid.innerHTML = '';
-    
+
     // Show/hide main counter and toggle header class
     const mainCounterElement = document.querySelector('.header-title-counter');
     const headerElement = document.querySelector('.header');
@@ -965,10 +950,10 @@ document.addEventListener('DOMContentLoaded', function() {
     if (headerElement) {
       headerElement.classList.toggle('main-counter-hidden', isMainCounterHidden);
     }
-    
+
     // Hide the grid completely if there are no visible counters
     let visibleCounters = 0;
-    
+
     counters.forEach(counter => {
       if (!hiddenCounters.includes(counter.id)) {
         visibleCounters++;
@@ -1010,7 +995,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     document.querySelectorAll('.reset-mini').forEach(btn => {
       btn.addEventListener('click', () => {
-        chrome.storage.local.get(['additionalCounters'], function(result) {
+        chrome.storage.local.get(['additionalCounters'], function (result) {
           const counters = result.additionalCounters || [];
           const counterIndex = counters.findIndex(c => c.id === btn.dataset.id);
           if (counterIndex !== -1) {
@@ -1024,12 +1009,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Update mini counter value
   function updateMiniCounter(id, change) {
-    chrome.storage.local.get(['additionalCounters'], function(result) {
+    chrome.storage.local.get(['additionalCounters'], function (result) {
       const counters = result.additionalCounters || [];
       const counterIndex = counters.findIndex(c => c.id === id);
       if (counterIndex !== -1) {
         counters[counterIndex].value = Math.max(0, (counters[counterIndex].value || 0) + change);
-        chrome.storage.local.set({ additionalCounters: counters }, function() {
+        chrome.storage.local.set({ additionalCounters: counters }, function () {
           loadCounters();
         });
       }
@@ -1038,14 +1023,14 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Add new counter
   if (addCounterBtn) {
-    addCounterBtn.addEventListener('click', function() {
-      chrome.storage.local.get(['additionalCounters'], function(result) {
+    addCounterBtn.addEventListener('click', function () {
+      chrome.storage.local.get(['additionalCounters'], function (result) {
         const counters = result.additionalCounters || [];
         if (counters.length >= 6) {
-          alert('Maximum number of additional counters (6) reached!');
+          showNotification('Maximum of 6 additional counters reached.', 'warning');
           return;
         }
-        
+
         const counterName = prompt('Enter a name for the new counter:');
         if (counterName && counterName.trim()) {
           const newCounter = {
@@ -1054,7 +1039,7 @@ document.addEventListener('DOMContentLoaded', function() {
             value: 0
           };
           counters.push(newCounter);
-          chrome.storage.local.set({ additionalCounters: counters }, function() {
+          chrome.storage.local.set({ additionalCounters: counters }, function () {
             loadCounters();
           });
         }
@@ -1064,27 +1049,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Handle counter actions (edit, delete, toggle)
   if (countersList) {
-    countersList.addEventListener('click', function(e) {
+    countersList.addEventListener('click', function (e) {
       const button = e.target.closest('button');
       if (!button) return;
-      
+
       const counterId = button.dataset.id;
       if (!counterId) return;
-      
+
       if (button.classList.contains('edit-counter')) {
         const counterName = prompt('Enter new name for the counter:');
         if (counterName && counterName.trim()) {
           if (counterId === 'main') {
-            chrome.storage.local.set({ mainCounterName: counterName.trim() }, function() {
+            chrome.storage.local.set({ mainCounterName: counterName.trim() }, function () {
               loadCounters();
             });
           } else {
-            chrome.storage.local.get(['additionalCounters'], function(result) {
+            chrome.storage.local.get(['additionalCounters'], function (result) {
               const counters = result.additionalCounters || [];
               const counterIndex = counters.findIndex(c => c.id === counterId);
               if (counterIndex !== -1) {
                 counters[counterIndex].name = counterName.trim();
-                chrome.storage.local.set({ additionalCounters: counters }, function() {
+                chrome.storage.local.set({ additionalCounters: counters }, function () {
                   loadCounters();
                 });
               }
@@ -1092,27 +1077,27 @@ document.addEventListener('DOMContentLoaded', function() {
           }
         }
       } else if (button.classList.contains('delete-counter')) {
-        chrome.storage.local.get(['additionalCounters'], function(result) {
+        chrome.storage.local.get(['additionalCounters'], function (result) {
           const counters = result.additionalCounters || [];
           const updatedCounters = counters.filter(c => c.id !== counterId);
-          chrome.storage.local.set({ additionalCounters: updatedCounters }, function() {
+          chrome.storage.local.set({ additionalCounters: updatedCounters }, function () {
             loadCounters();
           });
         });
       } else if (button.classList.contains('toggle-counter')) {
-        chrome.storage.local.get(['hiddenCounters'], function(result) {
+        chrome.storage.local.get(['hiddenCounters'], function (result) {
           const hiddenCounters = result.hiddenCounters || [];
           const isHidden = hiddenCounters.includes(counterId);
-          
+
           if (isHidden) {
             const updatedHidden = hiddenCounters.filter(id => id !== counterId);
-            chrome.storage.local.set({ hiddenCounters: updatedHidden }, function() {
+            chrome.storage.local.set({ hiddenCounters: updatedHidden }, function () {
               updateToggleButtonIcon(button, false);
               loadCounters();
             });
           } else {
             hiddenCounters.push(counterId);
-            chrome.storage.local.set({ hiddenCounters: hiddenCounters }, function() {
+            chrome.storage.local.set({ hiddenCounters: hiddenCounters }, function () {
               updateToggleButtonIcon(button, true);
               loadCounters();
             });
@@ -1122,8 +1107,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
   }
 
-  // Initialize counters when popup opens
-  loadCounters();
+  // Counters will be initialized in the --- Initializers --- block below
 
   // Color options for tags
   const colorOptions = [
@@ -1137,48 +1121,27 @@ document.addEventListener('DOMContentLoaded', function() {
     { id: 'teal', name: 'Teal', color: '#009688', bgColor: '#E0F2F1', darkColor: '#00796B' }
   ];
 
-  // Default tags (8 tags with 4 deactivated by default)
-  const defaultTags = [
-    { id: 'reopened', name: 'Re-Opened', colorId: 'reopened', active: true },
-    { id: 'closed', name: 'Closed', colorId: 'closed', active: true },
-    { id: 'note', name: 'Note', colorId: 'note', active: true },
-    { id: 'created', name: 'Created', colorId: 'created', active: true },
-    { id: 'todo', name: 'TODO', colorId: 'gray', active: false },
-    { id: 'flag', name: 'Flag', colorId: 'purple', active: false },
-    { id: 'tba', name: 'TBA', colorId: 'pink', active: false },
-    { id: 'na', name: 'N/A', colorId: 'teal', active: false }
-  ];
+  // defaultTags is now defined globally at the top of the file
 
   // Load tags
   function loadTags() {
-    console.log("Loading tags...");
-    chrome.storage.local.get(['customTags'], function(result) {
-      console.log("Retrieved tags from storage:", result.customTags);
+    chrome.storage.local.get(['customTags'], function (result) {
       let tags = result.customTags;
-      
+
       // If no tags found in storage, initialize with default tags
       if (!tags || tags.length === 0) {
-        console.log("No tags found, initializing with defaults");
         tags = defaultTags;
-        // Save default tags to storage
-        chrome.storage.local.set({ customTags: defaultTags }, function() {
-          console.log("Default tags saved to storage");
-        });
+        chrome.storage.local.set({ customTags: defaultTags });
       } else if (tags.length < 8) {
         // Ensure all 8 default tags exist (for users upgrading from older versions)
         const existingTagIds = tags.map(t => t.id);
         const missingTags = defaultTags.filter(t => !existingTagIds.includes(t.id));
-        
         if (missingTags.length > 0) {
-          console.log("Adding missing tags:", missingTags);
           tags = [...tags, ...missingTags];
-          chrome.storage.local.set({ customTags: tags }, function() {
-            console.log("Updated tags saved to storage");
-          });
+          chrome.storage.local.set({ customTags: tags });
         }
       }
-      
-      console.log("Tags to display:", tags);
+
       displayTagsList(tags);
       updateTagSelects(tags.filter(tag => tag.active !== false));
     });
@@ -1186,27 +1149,19 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Display tags in settings modal
   function displayTagsList(tags) {
-    console.log("Displaying tags list:", tags);
-    
-    if (!tagsList) {
-      console.error("Tags list element not found in DOM!");
-      return;
-    }
-    
-    console.log("Clearing tags list and adding", tags.length, "tags");
+    if (!tagsList) return;
     tagsList.innerHTML = '';
-    
+
     tags.forEach(tag => {
       const colorInfo = colorOptions.find(c => c.id === tag.colorId) || colorOptions[0];
-      console.log(`Creating tag item for "${tag.name}" with color ${colorInfo.color}`);
-      
+
       const tagItem = document.createElement('div');
       tagItem.className = 'tag-item';
       tagItem.dataset.id = tag.id;
       tagItem.style.borderLeft = `4px solid ${colorInfo.color}`;
-      
+
       const isActive = tag.active !== false;
-      
+
       tagItem.innerHTML = `
         <div class="tag-info">
           <span class="tag-name" title="${tag.name}">
@@ -1221,55 +1176,38 @@ document.addEventListener('DOMContentLoaded', function() {
             </button>
             <button class="toggle-tag" data-id="${tag.id}" title="${isActive ? 'Deactivate tag' : 'Activate tag'}">
                 <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                ${isActive ? 
-                  `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>` : 
-                  `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`
-                }
+                ${isActive ?
+          `<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>` :
+          `<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>`
+        }
                 </svg>
             </button>
           </div>
         </div>
       `;
-      
+
       tagsList.appendChild(tagItem);
     });
-    
-    console.log("Finished adding tags to list, adding event listeners");
-    
+
     // Add event listeners for tag actions
-    const editButtons = tagsList.querySelectorAll('.edit-tag');
-    editButtons.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const tagId = btn.dataset.id;
-        editTag(tagId);
-      });
+    tagsList.querySelectorAll('.edit-tag').forEach(btn => {
+      btn.addEventListener('click', () => editTag(btn.dataset.id));
     });
-    
-    // Add throttled event listeners for toggle buttons to prevent rapid clicking
-    const toggleButtons = tagsList.querySelectorAll('.toggle-tag');
-    toggleButtons.forEach(btn => {
+
+    // Add throttled event listeners for toggle buttons
+    tagsList.querySelectorAll('.toggle-tag').forEach(btn => {
       let isProcessing = false;
-      
       btn.addEventListener('click', () => {
-        // Prevent multiple rapid clicks
         if (isProcessing) return;
-        
         isProcessing = true;
-        const tagId = btn.dataset.id;
-        
-        // Add visual feedback
         btn.classList.add('processing');
-        
-        // Toggle the tag with a small delay for visual feedback
         setTimeout(() => {
-          toggleTag(tagId);
+          toggleTag(btn.dataset.id);
           isProcessing = false;
           btn.classList.remove('processing');
         }, 300);
       });
     });
-    
-    console.log("Tag list display complete");
   }
 
   // Update tag selects in the UI
@@ -1278,13 +1216,13 @@ document.addEventListener('DOMContentLoaded', function() {
       { trigger: tagSelectTrigger, menu: tagSelectMenu, input: tagSelectInput, type: 'select' },
       { trigger: tagFilterTrigger, menu: tagFilterMenu, input: tagFilterInput, type: 'filter' }
     ];
-    
+
     configs.forEach(config => {
       if (!config.trigger || !config.menu || !config.input) return;
-      
+
       const currentValue = config.input.value;
       config.menu.innerHTML = '';
-      
+
       if (config.type === 'filter') {
         const allOption = document.createElement('div');
         allOption.className = 'dropdown-item tag-all' + (currentValue === 'all' ? ' active' : '');
@@ -1293,21 +1231,21 @@ document.addEventListener('DOMContentLoaded', function() {
         config.menu.appendChild(allOption);
         if (currentValue === 'all') updateTrigger(config.trigger, 'All Tags', '');
       }
-      
+
       tags.forEach(tag => {
         const item = document.createElement('div');
         const colorId = tag.colorId;
         item.className = `dropdown-item tag-${colorId}` + (currentValue === tag.id ? ' active' : '');
-        
+
         // Truncate name for display if extreme
         const displayLimit = 24;
         const displayName = tag.name.length > displayLimit ? tag.name.substring(0, displayLimit) + '...' : tag.name;
-        
+
         item.textContent = displayName;
         item.title = tag.name;
         item.onclick = () => handleSelect(config, tag.id, displayName, `bg-${colorId}`);
         config.menu.appendChild(item);
-        
+
         if (currentValue === tag.id) {
           updateTrigger(config.trigger, displayName, `bg-${colorId}`);
         }
@@ -1315,7 +1253,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
       // If current value is no longer valid, fallback to first tag (for select) or all (for filter)
       const valid = Array.from(config.menu.querySelectorAll('.dropdown-item')).some(i => i.textContent === config.trigger.querySelector('.selected-tag').textContent || config.input.value === 'all');
-      
+
       if (!valid && config.type === 'select' && tags.length > 0) {
         handleSelect(config, tags[0].id, tags[0].name, `bg-${tags[0].colorId}`);
       }
@@ -1324,10 +1262,10 @@ document.addEventListener('DOMContentLoaded', function() {
     function handleSelect(config, value, text, bgClass) {
       config.input.value = value;
       updateTrigger(config.trigger, text, bgClass);
-      
+
       // Update active state in menu
       config.menu.querySelectorAll('.dropdown-item').forEach(i => i.classList.remove('active'));
-      
+
       // Highlight the correct one
       const items = Array.from(config.menu.querySelectorAll('.dropdown-item'));
       const activeItem = items.find(i => i.textContent === text);
@@ -1348,7 +1286,7 @@ document.addEventListener('DOMContentLoaded', function() {
       const textEl = trigger.querySelector('.selected-tag');
       textEl.textContent = text;
       textEl.title = text;
-      
+
       // Remove previous bg classes
       trigger.classList.forEach(c => {
         if (c.startsWith('bg-')) trigger.classList.remove(c);
@@ -1359,18 +1297,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Edit tag name
   function editTag(tagId) {
-    chrome.storage.local.get(['customTags', 'snippets'], function(result) {
+    chrome.storage.local.get(['customTags', 'snippets'], function (result) {
       const tags = result.customTags || defaultTags;
       const tag = tags.find(t => t.id === tagId);
-      
+
       if (tag) {
         const newName = prompt('Enter new name for the tag:', tag.name);
         if (newName && newName.trim()) {
           tag.name = newName.trim();
-          
-          chrome.storage.local.set({ 
+
+          chrome.storage.local.set({
             customTags: tags
-          }, function() {
+          }, function () {
             loadTags();
             const snippets = result.snippets || [];
             if (snippets.length > 0) {
@@ -1384,38 +1322,27 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Toggle tag active state
   function toggleTag(tagId) {
-    chrome.storage.local.get(['customTags', 'snippets'], function(result) {
+    chrome.storage.local.get(['customTags', 'snippets'], function (result) {
       const tags = result.customTags || defaultTags;
       const tagIndex = tags.findIndex(t => t.id === tagId);
-      
+
       if (tagIndex !== -1) {
-        console.log(`Toggling tag "${tags[tagIndex].name}" active state from ${tags[tagIndex].active} to ${!tags[tagIndex].active}`);
-        
-        // Toggle the active state
         tags[tagIndex].active = !tags[tagIndex].active;
-        
-        // Check if we're deactivating a tag that's currently in use
         const isDeactivating = !tags[tagIndex].active;
-        
+
         if (isDeactivating) {
-          // Check if there's at least one active tag
           const activeTagsCount = tags.filter(t => t.active).length;
-          console.log(`Active tags count: ${activeTagsCount}`);
-          
+
           if (activeTagsCount === 0) {
-            console.log("Cannot deactivate the last active tag");
-            alert('Cannot deactivate the last active tag. At least one tag must remain active.');
-            tags[tagIndex].active = true; // Revert the change
-            chrome.storage.local.set({ customTags: tags }, function() {
-            loadTags();
-            });
+            showNotification('Cannot deactivate the last active tag.', 'warning');
+            tags[tagIndex].active = true; // Revert
+            chrome.storage.local.set({ customTags: tags }, () => loadTags());
             return;
           }
 
-          // Check if this tag is currently selected in the dropdown
+          // If this tag is selected in the dropdown, switch to first active tag
           const tagSelect = document.getElementById('tagSelect');
           if (tagSelect && tagSelect.value === tagId) {
-            // Find first active tag to select instead
             const firstActiveTag = tags.find(t => t.active);
             if (firstActiveTag) {
               tagSelect.value = firstActiveTag.id;
@@ -1424,28 +1351,19 @@ document.addEventListener('DOMContentLoaded', function() {
             }
           }
         }
-        
-        // Save the updated tags
-        chrome.storage.local.set({ customTags: tags }, function() {
-          console.log("Tags updated in storage, reloading tag UI");
+
+        chrome.storage.local.set({ customTags: tags }, function () {
           loadTags();
-          
-          // Update snippet display if needed
           const snippets = result.snippets || [];
-          if (snippets.length > 0) {
-            displaySnippets(snippets);
-          }
+          if (snippets.length > 0) displaySnippets(snippets);
         });
       }
     });
   }
 
-  // Remove addNewTag function as we don't need it anymore
-  // Instead, replace the addNewTag event listener with null action
-
-  // Change addTagBtn event listener to show info message
+  // Hide the add tag button (tags are fixed)
   if (addTagBtn) {
-    addTagBtn.style.display = 'none'; // Hide the add button completely
+    addTagBtn.style.display = 'none';
   }
 
   // --- Initializers ---
@@ -1459,14 +1377,14 @@ document.addEventListener('DOMContentLoaded', function() {
   if (importFileInput) importFileInput.addEventListener('change', importData);
 
   // Recovery button click handler - one consolidated listener
-  document.addEventListener('click', function(e) {
+  document.addEventListener('click', function (e) {
     if (e.target.closest('#recoverSnippetBtn')) {
       recoverDeletedSnippets();
     }
   });
 
   // Initialize recovery button setting
-  chrome.storage.local.get(['toggleRecoveryButton'], function(result) {
+  chrome.storage.local.get(['toggleRecoveryButton'], function (result) {
     const recoveryEnabled = result.toggleRecoveryButton !== false;
     const settingsToggles = document.querySelector('.settings-toggles');
     if (settingsToggles && !document.getElementById('toggleRecoveryButton')) {
@@ -1474,10 +1392,10 @@ document.addEventListener('DOMContentLoaded', function() {
       recoveryToggle.className = 'toggle-label';
       recoveryToggle.innerHTML = `<input type="checkbox" id="toggleRecoveryButton" ${recoveryEnabled ? 'checked' : ''}><span class="toggle-text">Show Recovery Button</span>`;
       settingsToggles.appendChild(recoveryToggle);
-      
+
       const recoveryToggleCheckbox = document.getElementById('toggleRecoveryButton');
       if (recoveryToggleCheckbox) {
-        recoveryToggleCheckbox.addEventListener('change', function() {
+        recoveryToggleCheckbox.addEventListener('change', function () {
           chrome.storage.local.set({ toggleRecoveryButton: this.checked });
           if (!this.checked) hideRecoveryButton();
         });
@@ -1503,7 +1421,7 @@ function applyFilters() {
 
   // Style the tag filter dropdown based on selection
   const tagFilterSelect = document.getElementById('tagFilter');
-  
+
   // Remove all existing tag classes
   tagFilterSelect.classList.forEach(className => {
     if (className.startsWith('bg-')) {
@@ -1512,17 +1430,17 @@ function applyFilters() {
   });
 
   if (selectedTag !== 'all') {
-    chrome.storage.local.get(['customTags'], function(result) {
+    chrome.storage.local.get(['customTags'], function (result) {
       const tags = result.customTags || defaultTags;
       const tag = tags.find(t => t.id === selectedTag);
-      
+
       if (tag) {
         tagFilterSelect.classList.add(`bg-${tag.colorId}`);
       }
     });
   }
 
-  chrome.storage.local.get(['snippets'], function(result) {
+  chrome.storage.local.get(['snippets'], function (result) {
     const allSnippets = result.snippets || [];
     let filteredSnippets = allSnippets;
 
@@ -1541,7 +1459,7 @@ function applyFilters() {
 
     // Filter by search term (search in snippet.text)
     if (searchTerm) {
-      filteredSnippets = filteredSnippets.filter(snippet => 
+      filteredSnippets = filteredSnippets.filter(snippet =>
         snippet.text.toLowerCase().includes(searchTerm)
       );
     }
@@ -1551,9 +1469,9 @@ function applyFilters() {
 }
 
 function updateCounter(change) {
-  chrome.storage.local.get(['counter'], function(result) {
+  chrome.storage.local.get(['counter'], function (result) {
     const newCount = Math.max(0, (result.counter || 0) + change);
-    chrome.storage.local.set({ counter: newCount }, function() {
+    chrome.storage.local.set({ counter: newCount }, function () {
       document.getElementById('counter').textContent = newCount;
     });
   });
@@ -1565,25 +1483,27 @@ const CLICK_DELAY = 250; // milliseconds delay to detect double-click
 function displaySnippets(snippets) {
   const snippetsList = document.getElementById('snippetsList');
   if (!snippetsList) return;
-  
+
   // Use DocumentFragment for faster, atomic DOM updates
   const fragment = document.createDocumentFragment();
-  
+
   // Remove any existing listeners to prevent duplicates
   snippetsList.removeEventListener('click', handleSnippetClick);
   snippetsList.removeEventListener('dblclick', handleSnippetDoubleClick);
-  
-  chrome.storage.local.get(['customTags', 'toggleDoubleClickEdit'], function(result) {
+
+  chrome.storage.local.get(['customTags', 'toggleDoubleClickEdit', 'toggleTimestamp', 'toggleSnippetTags'], function (result) {
     const tags = result.customTags || defaultTags;
     const doubleClickEditEnabled = result.toggleDoubleClickEdit !== false;
-    
+    const showTimestamp = result.toggleTimestamp !== false;
+    const showTags = result.toggleSnippetTags !== false;
+
     snippets.forEach((snippet, index) => {
-      const tagObj = tags.find(t => t.id === snippet.tag) || 
-                     { id: snippet.tag, name: snippet.tag, colorId: 'note' };
-      
+      const tagObj = tags.find(t => t.id === snippet.tag) ||
+        { id: snippet.tag, name: snippet.tag, colorId: 'note' };
+
       const snippetElement = document.createElement('div');
       snippetElement.className = `snippet-item ${tagObj.colorId}`;
-      
+
       // OPTIMIZATION: On initial load, skip animations entirely for instant appearance
       if (isInitialLoad) {
         snippetElement.classList.add('no-animation');
@@ -1591,25 +1511,27 @@ function displaySnippets(snippets) {
         // Shorter staggered delay only for filtering/adding during session
         snippetElement.style.animationDelay = `${Math.min(index * 15, 150)}ms`;
       }
-      
+
       snippetElement.dataset.snippetId = snippet.id;
 
       // Top Tag and Timestamp
       const topTagElement = document.createElement('div');
       topTagElement.className = 'snippet-top-tag';
-      
+      if (!showTags) topTagElement.classList.add('hidden');
+
       const tagNameSpan = document.createElement('span');
       tagNameSpan.className = 'snippet-tag-name';
       tagNameSpan.textContent = tagObj.name;
       tagNameSpan.title = tagObj.name;
       topTagElement.appendChild(tagNameSpan);
-      
+
       const timestampEl = document.createElement('small');
       timestampEl.classList.add('snippet-timestamp');
+      if (!showTimestamp) timestampEl.classList.add('hidden');
       timestampEl.textContent = formatSnippetHeaderTimestamp(snippet.timestamp);
       topTagElement.appendChild(timestampEl);
       snippetElement.appendChild(topTagElement);
-    
+
       // Content Wrapper
       const contentWrapper = document.createElement('div');
       contentWrapper.className = 'snippet-content-wrapper';
@@ -1642,36 +1564,36 @@ function displaySnippets(snippets) {
 // Helper function to render snippet content with links and images
 function renderSnippetContent(contentElement, snippet) {
   contentElement.innerHTML = ''; // Clear existing content
-  
+
   const contentContainer = document.createElement('div');
   contentContainer.className = snippet.image ? 'snippet-content-with-image' : '';
-  
+
   // Add text content if it exists
   if (snippet.text) {
     const textDiv = document.createElement('div');
     // Replace URLs with clickable links
     const textWithLinks = snippet.text.replace(
       /(https?:\/\/[^\s]+)/g,
-    '<a href="$1" target="_blank" rel="noopener noreferrer" class="snippet-link">$1</a>'
+      '<a href="$1" target="_blank" rel="noopener noreferrer" class="snippet-link">$1</a>'
     );
     textDiv.innerHTML = textWithLinks;
     contentContainer.appendChild(textDiv);
   }
-  
+
   // Add image if it exists
   if (snippet.image) {
     const imageContainer = document.createElement('div');
     imageContainer.className = 'snippet-image-container';
     imageContainer.title = "Click to open image in new tab";
-    
+
     const img = document.createElement('img');
     img.className = 'snippet-image';
     img.src = snippet.image;
     img.alt = 'Snippet image';
-    
+
     // Add the image first
     imageContainer.appendChild(img);
-    
+
     // Add specific image copy button ONLY if the snippet also has text
     // (If it's image-only, the main copy button will just copy the image natively)
     if (snippet.text && snippet.text.trim().length > 0) {
@@ -1681,7 +1603,7 @@ function renderSnippetContent(contentElement, snippet) {
       copyBtnContainer.style.top = '5px';
       copyBtnContainer.style.right = '5px';
       copyBtnContainer.style.zIndex = '20';
-      
+
       const copyImgBtn = document.createElement('button');
       copyImgBtn.className = 'copy-image-btn';
       copyImgBtn.title = 'Copy image only';
@@ -1699,7 +1621,7 @@ function renderSnippetContent(contentElement, snippet) {
           const pngBlob = imgBlob.type === 'image/png' ? imgBlob : new Blob([imgBlob], { type: 'image/png' });
           const item = new ClipboardItem({ 'image/png': pngBlob });
           await navigator.clipboard.write([item]);
-          
+
           copyImgBtn.classList.add('copy-success');
           copyImgBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
           setTimeout(() => {
@@ -1710,11 +1632,11 @@ function renderSnippetContent(contentElement, snippet) {
           console.error('Copy image error:', err);
         }
       });
-      
+
       copyBtnContainer.appendChild(copyImgBtn);
       imageContainer.appendChild(copyBtnContainer);
     }
-    
+
     // Open image in new tab when clicked
     imageContainer.addEventListener('click', () => {
       const win = window.open('', '_blank');
@@ -1745,151 +1667,106 @@ function renderSnippetContent(contentElement, snippet) {
         </html>
       `);
     });
-    
+
     contentContainer.appendChild(imageContainer);
   }
-  
+
   contentElement.appendChild(contentContainer);
 }
 
 // Helper function to create action buttons
 function createSnippetActions(snippet) {
-    const actions = document.createElement('div');
-    actions.className = 'snippet-actions';
+  const actions = document.createElement('div');
+  actions.className = 'snippet-actions';
 
   // Copy button — copies text AND image together when both exist
-    const copyBtn = document.createElement('button');
-    copyBtn.className = 'copy-btn';
-    copyBtn.title = 'Copy snippet';
-    copyBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
-    copyBtn.addEventListener('click', async () => {
-      try {
-        const clipboardItems = [];
-        const textContent = snippet.text || '';
+  const copyBtn = document.createElement('button');
+  copyBtn.className = 'copy-btn';
+  copyBtn.title = 'Copy snippet';
+  copyBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>`;
+  copyBtn.addEventListener('click', async () => {
+    try {
+      const clipboardItems = [];
+      const textContent = snippet.text || '';
 
-        if (snippet.image && textContent) {
-          // Both text and image: write as rich HTML clipboard AND plain text so that target apps paste both
-          const htmlContent = `<div>${textContent.replace(/\n/g, '<br>')}</div><br><img src="${snippet.image}" />`;
-          const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
-          const textBlob = new Blob([textContent], { type: 'text/plain' });
-          
-          const item = new ClipboardItem({
-            'text/html': htmlBlob,
-            'text/plain': textBlob
-          });
-          await navigator.clipboard.write([item]);
-        } else if (snippet.image) {
-          // Image only
-          const imgRes = await fetch(snippet.image);
-          const imgBlob = await imgRes.blob();
-          const pngBlob = imgBlob.type === 'image/png' ? imgBlob : new Blob([imgBlob], { type: 'image/png' });
-          const item = new ClipboardItem({ 'image/png': pngBlob });
-          await navigator.clipboard.write([item]);
-        } else {
-          // Text only
-          await navigator.clipboard.writeText(textContent);
-        }
-        showCopySuccess(copyBtn);
-      } catch (error) {
-        console.error('Copy error:', error);
-        // Fallback: at least copy text
-        try {
-          await navigator.clipboard.writeText(snippet.text || '');
-          showCopySuccess(copyBtn);
-        } catch (e2) {
-          showNotification('Failed to copy to clipboard.', 'error');
-        }
+      if (snippet.image && textContent) {
+        // Both text and image: write as rich HTML clipboard AND plain text so that target apps paste both
+        const htmlContent = `<div>${textContent.replace(/\n/g, '<br>')}</div><br><img src="${snippet.image}" />`;
+        const htmlBlob = new Blob([htmlContent], { type: 'text/html' });
+        const textBlob = new Blob([textContent], { type: 'text/plain' });
+
+        const item = new ClipboardItem({
+          'text/html': htmlBlob,
+          'text/plain': textBlob
+        });
+        await navigator.clipboard.write([item]);
+      } else if (snippet.image) {
+        // Image only
+        const imgRes = await fetch(snippet.image);
+        const imgBlob = await imgRes.blob();
+        const pngBlob = imgBlob.type === 'image/png' ? imgBlob : new Blob([imgBlob], { type: 'image/png' });
+        const item = new ClipboardItem({ 'image/png': pngBlob });
+        await navigator.clipboard.write([item]);
+      } else {
+        // Text only
+        await navigator.clipboard.writeText(textContent);
       }
-    });
-    actions.appendChild(copyBtn);
+      showCopySuccess(copyBtn);
+    } catch (error) {
+      console.error('Copy error:', error);
+      // Fallback: at least copy text
+      try {
+        await navigator.clipboard.writeText(snippet.text || '');
+        showCopySuccess(copyBtn);
+      } catch (e2) {
+        showNotification('Failed to copy to clipboard.', 'error');
+      }
+    }
+  });
+  actions.appendChild(copyBtn);
 
   // Delete button - no confirmation
-    const deleteBtn = document.createElement('button');
-    deleteBtn.className = 'delete-btn';
-    deleteBtn.title = 'Delete';
-    deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
+  const deleteBtn = document.createElement('button');
+  deleteBtn.className = 'delete-btn';
+  deleteBtn.title = 'Delete';
+  deleteBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>`;
   deleteBtn.addEventListener('click', () => {
-      // Modified delete functionality with recovery mechanism
-      chrome.storage.local.get(['snippets', 'toggleRecoveryButton'], function(result) {
-        const snippets = result.snippets || [];
-        const recoveryEnabled = result.toggleRecoveryButton !== false; // Default to true
-        
-        console.log("Delete button clicked for snippet ID:", snippet.id);
-        console.log("Recovery enabled:", recoveryEnabled);
-        
-        // If this is the first deletion in a sequence, take a snapshot
-        if (deletedSnippets.length === 0) {
-          preDeletionSnippets = [...snippets];
-          hasRecovered = false;
-          // Clear any existing timeout
-          if (undoTimeout) {
-            clearTimeout(undoTimeout);
-          }
-        }
-        
-        // Add the deleted snippet to deletedSnippets
-        const deletedSnippet = snippets.find(s => s.id === snippet.id);
-        if (deletedSnippet) {
-          deletedSnippets.push(deletedSnippet);
-          console.log("Added to deleted snippets, count:", deletedSnippets.length);
-        }
-        
-        // Remove the snippet from the list
-        const updatedSnippets = snippets.filter(s => s.id !== snippet.id);
-        
-        // Update storage
-        chrome.storage.local.set({ snippets: updatedSnippets }, function() {
-          // Refresh the list
-          applyFilters();
-          
-          // Show recovery button if enabled
-          if (recoveryEnabled && deletedSnippets.length > 0) {
-            const recoveryButtonContainer = document.querySelector('.recovery-button-container');
-            console.log("Recovery button container found:", !!recoveryButtonContainer);
-            
-            if (recoveryButtonContainer) {
-              // Update the count text
-              const countText = recoveryButtonContainer.querySelector('.snippets-deleted-text');
-              if (countText) {
-                countText.textContent = `${deletedSnippets.length} snippet${deletedSnippets.length > 1 ? 's' : ''} deleted`;
-              }
-              
-              // Show the container
-              recoveryButtonContainer.classList.add('visible');
-              console.log("Added visible class to recovery button");
-            } else {
-              console.error("Recovery button container not found in DOM");
-              
-              // Try to create the recovery button container if it doesn't exist
-              const newRecoveryContainer = document.createElement('div');
-              newRecoveryContainer.className = 'recovery-button-container';
-              newRecoveryContainer.innerHTML = `
-                <div class="snippets-deleted-text">${deletedSnippets.length} snippet${deletedSnippets.length > 1 ? 's' : ''} deleted</div>
-                <button id="recoverSnippetBtn" class="recover-btn">
-                  <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M1 4v6h6"></path>
-                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
-                  </svg>
-                  Recover
-                </button>
-              `;
-              
-              // Add to document body
-              document.body.appendChild(newRecoveryContainer);
-              
-              // Make it visible
-              newRecoveryContainer.classList.add('visible');
-              console.log("Created and added visible recovery container");
+    chrome.storage.local.get(['snippets', 'toggleRecoveryButton'], function (result) {
+      const snippets = result.snippets || [];
+      const recoveryEnabled = result.toggleRecoveryButton !== false;
+
+      // If this is the first deletion in a sequence, take a snapshot
+      if (deletedSnippets.length === 0) {
+        preDeletionSnippets = [...snippets];
+        hasRecovered = false;
+        if (undoTimeout) clearTimeout(undoTimeout);
+      }
+
+      // Track deleted snippet
+      const deletedSnippet = snippets.find(s => s.id === snippet.id);
+      if (deletedSnippet) deletedSnippets.push(deletedSnippet);
+
+      // Remove and save
+      const updatedSnippets = snippets.filter(s => s.id !== snippet.id);
+      chrome.storage.local.set({ snippets: updatedSnippets }, function () {
+        applyFilters();
+
+        if (recoveryEnabled && deletedSnippets.length > 0) {
+          const recoveryButtonContainer = document.querySelector('.recovery-button-container');
+          if (recoveryButtonContainer) {
+            const countText = recoveryButtonContainer.querySelector('.snippets-deleted-text');
+            if (countText) {
+              countText.textContent = `${deletedSnippets.length} snippet${deletedSnippets.length > 1 ? 's' : ''} deleted`;
             }
-            
-            // Set timeout to hide recovery button after 10 seconds
-            undoTimeout = setTimeout(hideRecoveryButton, 10000);
+            recoveryButtonContainer.classList.add('visible');
           }
-        });
+          undoTimeout = setTimeout(hideRecoveryButton, 10000);
+        }
       });
     });
-    actions.appendChild(deleteBtn);
-    
+  });
+  actions.appendChild(deleteBtn);
+
   return actions;
 }
 
@@ -1910,11 +1787,11 @@ function handleSnippetClick(event) {
   if (event.target.closest(interactiveSelectors)) {
     if (event.target.closest('a.snippet-link')) {
       // Handle link click with delay
-      event.preventDefault(); 
+      event.preventDefault();
       const href = event.target.closest('a.snippet-link').href;
-    clickTimer = setTimeout(() => {
-      window.open(href, '_blank');
-    }, CLICK_DELAY);
+      clickTimer = setTimeout(() => {
+        window.open(href, '_blank');
+      }, CLICK_DELAY);
     }
     // For other interactive elements, their own click listeners will handle actions.
     // We stop propagation to prevent interference with double-click-to-edit.
@@ -1935,13 +1812,13 @@ function handleSnippetDoubleClick(event) {
   // Do not enter edit mode if double-clicking on an interactive element itself
   const interactiveSelectors = 'a.snippet-link, .copy-btn, .delete-btn, .copy-image-btn, .snippet-actions button, .snippet-image-container img';
   if (event.target.closest(interactiveSelectors)) {
-      return;
+    return;
   }
 
   const snippetId = parseInt(snippetItem.dataset.snippetId, 10);
   if (isNaN(snippetId)) return;
 
-  chrome.storage.local.get('toggleDoubleClickEdit', function(result) {
+  chrome.storage.local.get('toggleDoubleClickEdit', function (result) {
     if (result.toggleDoubleClickEdit !== false) { // Default to true
       enterEditMode(snippetItem, snippetId);
     }
@@ -1954,7 +1831,7 @@ function enterEditMode(snippetElement, snippetId) {
   if (window.getSelection) {
     window.getSelection().removeAllRanges();
   }
-  
+
   const contentWrapper = snippetElement.querySelector('.snippet-content-wrapper');
   const contentDiv = snippetElement.querySelector('.snippet-content');
   const actionsDiv = snippetElement.querySelector('.snippet-actions');
@@ -1967,20 +1844,20 @@ function enterEditMode(snippetElement, snippetId) {
   if (existingEditArea) {
     const existingSnippetItem = existingEditArea.closest('.snippet-item');
     if (existingSnippetItem && existingSnippetItem !== snippetElement) {
-       const existingSnippetId = parseInt(existingSnippetItem.dataset.snippetId, 10);
-       saveEdit(existingSnippetId, existingEditArea.value);
+      const existingSnippetId = parseInt(existingSnippetItem.dataset.snippetId, 10);
+      saveEdit(existingSnippetId, existingEditArea.value);
     }
   }
 
-  chrome.storage.local.get('snippets', function(result) {
+  chrome.storage.local.get('snippets', function (result) {
     const snippets = result.snippets || [];
     const snippet = snippets.find(s => s.id === snippetId);
     if (!snippet) return;
 
     // Hide original content, actions, and timestamp
     contentDiv.style.display = 'none';
-    if(actionsDiv) actionsDiv.style.display = 'none';
-    if(timestampDiv) timestampDiv.style.display = 'none'; // Hide timestamp during edit
+    if (actionsDiv) actionsDiv.style.display = 'none';
+    if (timestampDiv) timestampDiv.style.display = 'none'; // Hide timestamp during edit
 
     // Create edit container
     const editContainer = document.createElement('div');
@@ -1991,7 +1868,7 @@ function enterEditMode(snippetElement, snippetId) {
     editArea.className = 'snippet-edit-area';
     editArea.value = snippet.text || '';
     editArea.rows = Math.max(3, ((snippet.text || '').match(/\\n/g) || []).length + 1); // Basic auto-sizing
-    
+
     // Add the textarea before the image (text on top)
     editContainer.appendChild(editArea);
 
@@ -2009,7 +1886,7 @@ function enterEditMode(snippetElement, snippetId) {
           </svg>
         </button>
       `;
-      
+
       // Add remove image button functionality
       const removeBtn = imagePreview.querySelector('.remove-image-btn');
       removeBtn.addEventListener('click', (e) => {
@@ -2017,13 +1894,18 @@ function enterEditMode(snippetElement, snippetId) {
         imagePreview.remove();
         editContainer.dataset.removeImage = 'true';
       });
-      
+
       editContainer.appendChild(imagePreview);
     }
 
+    // Guard flag to prevent double-save from Enter + blur firing together
+    let hasSaved = false;
+
     // Event listener for saving
     const saveHandler = () => {
+      if (hasSaved) return;
       if (document.body.contains(editArea)) {
+        hasSaved = true;
         const shouldRemoveImage = editContainer.dataset.removeImage === 'true';
         saveEdit(snippetId, editArea.value, shouldRemoveImage);
       }
@@ -2052,23 +1934,23 @@ function enterEditMode(snippetElement, snippetId) {
 
 // Function to save the edited snippet
 function saveEdit(snippetId, newText, removeImage = false) {
-  chrome.storage.local.get('snippets', function(result) {
+  chrome.storage.local.get('snippets', function (result) {
     let snippets = result.snippets || [];
     const snippetIndex = snippets.findIndex(s => s.id === snippetId);
     if (snippetIndex !== -1) {
       const snippet = snippets[snippetIndex];
-      
+
       // Check if anything has changed
       const textChanged = snippet.text !== newText;
       const imageChanged = removeImage && snippet.image;
-      
+
       if (textChanged || imageChanged) {
         snippet.text = newText;
         if (removeImage) {
           snippet.image = null;
         }
-        
-        chrome.storage.local.set({ snippets: snippets }, function() {
+
+        chrome.storage.local.set({ snippets: snippets }, function () {
           if (chrome.runtime.lastError) {
             console.error("Error saving snippet:", chrome.runtime.lastError);
           } else {
@@ -2089,34 +1971,34 @@ function saveEdit(snippetId, newText, removeImage = false) {
 // Add these functions at the end of the file, before the closing });
 function exportData() {
   // Get all data from storage
-  chrome.storage.local.get(null, function(data) {
+  chrome.storage.local.get(null, function (data) {
     // Convert the data to a JSON string
     const jsonData = JSON.stringify(data, null, 2);
-    
+
     // Create a blob with the JSON data
     const blob = new Blob([jsonData], { type: 'application/json' });
-    
+
     // Create a URL for the blob
     const url = URL.createObjectURL(blob);
-    
+
     // Create a temporary anchor element to trigger the download
     const a = document.createElement('a');
     a.href = url;
-    
+
     // Generate filename with current date and time
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
     const timeStr = now.toTimeString().slice(0, 8).replace(/:/g, '-'); // HH-MM-SS
-    a.download = `tc-counter-backup-${dateStr}-${timeStr}.json`;
-    
+    a.download = `quickclip-pro-backup-${dateStr}-${timeStr}.json`;
+
     // Append the anchor to the body, click it, and remove it
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    
+
     // Release the URL object
     setTimeout(() => URL.revokeObjectURL(url), 100);
-    
+
     // Show success message
     showNotification('Data exported successfully!', 'success');
   });
@@ -2125,29 +2007,29 @@ function exportData() {
 function importData() {
   const fileInput = document.getElementById('importFileInput');
   const file = fileInput.files[0];
-  
+
   if (!file) {
     showNotification('No file selected.', 'error');
     return;
   }
-  
+
   if (file.type !== 'application/json') {
     showNotification('Please select a valid JSON file.', 'error');
     fileInput.value = '';
     return;
   }
-  
+
   const reader = new FileReader();
-  
-  reader.onload = function(e) {
+
+  reader.onload = function (e) {
     try {
       const data = JSON.parse(e.target.result);
-      
+
       // Confirm import
       if (confirm('This will replace all your current data. Are you sure you want to continue?')) {
         // Clear existing data and import new data
-        chrome.storage.local.clear(function() {
-          chrome.storage.local.set(data, function() {
+        chrome.storage.local.clear(function () {
+          chrome.storage.local.set(data, function () {
             // Reload the page to reflect the imported data
             showNotification('Data imported successfully! Reloading...', 'success');
             setTimeout(() => window.location.reload(), 1000);
@@ -2158,19 +2040,16 @@ function importData() {
       showNotification('Invalid JSON file. Please try again.', 'error');
       console.error('Import error:', error);
     }
-    
+
     // Reset the file input
     fileInput.value = '';
   };
-  
+
   reader.readAsText(file);
 }
 
 function shareExtension() {
   const shareUrl = 'https://akasumitlamba.github.io/QuickClipPro/';
-
-  // Open the same page in a new tab
-  window.open(shareUrl, '_blank', 'noopener');
 
   // Copy link to clipboard and notify user
   navigator.clipboard.writeText(shareUrl)
@@ -2179,7 +2058,7 @@ function shareExtension() {
     })
     .catch((error) => {
       console.error('Failed to copy share link:', error);
-      showNotification('Opened page. Could not copy link.', 'warning');
+      showNotification('Could not copy link to clipboard.', 'warning');
     });
 }
 
@@ -2189,20 +2068,22 @@ function showNotification(message, type = 'info') {
   const notification = document.createElement('div');
   notification.className = `notification ${type}`;
   notification.textContent = message;
-  
+
   // Add close button
   const closeBtn = document.createElement('button');
   closeBtn.innerHTML = '&times;';
   closeBtn.className = 'notification-close';
   closeBtn.addEventListener('click', () => {
-    document.body.removeChild(notification);
+    if (document.body.contains(notification)) {
+      document.body.removeChild(notification);
+    }
   });
-  
+
   notification.appendChild(closeBtn);
-  
+
   // Add to body
   document.body.appendChild(notification);
-  
+
   // Auto-remove after 3 seconds
   setTimeout(() => {
     if (document.body.contains(notification)) {
@@ -2217,12 +2098,12 @@ function hideRecoveryButton() {
   if (recoveryButtonContainer) {
     recoveryButtonContainer.classList.remove('visible');
   }
-  
+
   // Clear recovery state
   deletedSnippets = [];
   preDeletionSnippets = [];
   isRecovering = false;
-  
+
   // Clear timeout if exists
   if (undoTimeout) {
     clearTimeout(undoTimeout);
@@ -2232,37 +2113,37 @@ function hideRecoveryButton() {
 
 // Function to recover deleted snippets
 function recoverDeletedSnippets() {
-  chrome.storage.local.get(['toggleRecoveryButton'], function(result) {
+  chrome.storage.local.get(['toggleRecoveryButton'], function (result) {
     const recoveryEnabled = result.toggleRecoveryButton !== false;
-    
+
     // Check if recovery is allowed
     if (!recoveryEnabled ||
-        deletedSnippets.length === 0 ||
-        isRecovering ||
-        hasRecovered ||
-        preDeletionSnippets.length === 0) {
+      deletedSnippets.length === 0 ||
+      isRecovering ||
+      hasRecovered ||
+      preDeletionSnippets.length === 0) {
       return;
     }
-    
+
     // Set the recovering flag to prevent multiple recoveries
     isRecovering = true;
-    
+
     // Clear any existing timeout
     if (undoTimeout) {
       clearTimeout(undoTimeout);
     }
-    
+
     // Restore snippets from pre-deletion snapshot
-    chrome.storage.local.set({ snippets: preDeletionSnippets }, function() {
+    chrome.storage.local.set({ snippets: preDeletionSnippets }, function () {
       // Mark as recovered to prevent further recovery
       hasRecovered = true;
-      
+
       // Refresh the list to show recovered snippets
       applyFilters();
-      
+
       // Hide the recovery button
       hideRecoveryButton();
-      
+
       // Show confirmation notification
       showNotification('Snippets recovered successfully', 'success');
     });
