@@ -14,7 +14,7 @@
 <body class="preload">
   <div class="container">
     <div class="header">
-      <span class="header-brand">QuickClip Pro</span>
+      <span class="header-brand">QuickClip <span class="pro-text">Pro</span></span>
       <div class="header-title-counter">
         <span class="logo-title"><b>Execution Count:</b></span>
         <div class="counter-controls">
@@ -331,16 +331,7 @@
               </svg>
               Import
             </button>
-            <button id="shareExtensionBtn" class="data-btn" title="Share QuickClip Pro">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
-                <circle cx="18" cy="5" r="3"></circle>
-                <circle cx="6" cy="12" r="3"></circle>
-                <circle cx="18" cy="19" r="3"></circle>
-                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-              </svg>
-              Share App
-            </button>
+
           </div>
           <input type="file" id="importFileInput" accept=".json" style="display: none;">
         </div>
@@ -407,6 +398,49 @@
           <div class="tag-info-text">
             <p><small>Rename tags and activate/deactivate them as needed. Deactivated tags won't appear in dropdowns but
                 preserve their data.</small></p>
+          </div>
+        </div>
+
+        <div class="settings-divider"></div>
+
+        <!-- App Actions Section -->
+        <div class="app-actions-section settings-section">
+          <h3>
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+              style="vertical-align: middle; margin-right: 4px;">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="12" y1="8" x2="12" y2="16"></line>
+              <line x1="8" y1="12" x2="16" y2="12"></line>
+            </svg>
+            App Actions
+          </h3>
+          <div class="data-buttons">
+            <button id="shareExtensionBtn" class="data-btn" title="Share QuickClip Pro">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+              </svg>
+              Share
+            </button>
+            <a href="https://chromewebstore.google.com/detail/ndibnfgbmcfgoeapohknfeeiilgfhdjg?utm_source=item-share-cb"
+              target="_blank" rel="noopener" class="data-btn rate-btn" title="Rate on Chrome Web Store">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <polygon
+                  points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2">
+                </polygon>
+              </svg>
+              Rate App
+            </a>
+            <a href="https://github.com/akasumitlamba/QuickClipPro/blob/main/PRIVACY.md" target="_blank" rel="noopener"
+              class="data-btn privacy-btn" title="Privacy Policy">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+              Privacy
+            </a>
           </div>
         </div>
 
@@ -523,51 +557,33 @@
 
         <div class="settings-divider"></div>
 
-        <!-- Connect Section -->
+        <!-- Connect Section — Single Row -->
         <div class="connect-section settings-section">
-          <h3>
-            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
-              style="vertical-align: middle; margin-right: 4px;">
-              <circle cx="18" cy="5" r="3"></circle>
-              <circle cx="6" cy="12" r="3"></circle>
-              <circle cx="18" cy="19" r="3"></circle>
-              <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
-              <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
-            </svg>
-            Connect
-          </h3>
-          <ul class="know-more-list">
-            <li>
-              <a href="https://www.linkedin.com/in/akasumitlamba/" target="_blank" rel="noopener"
-                class="know-more-link">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="flex-shrink:0;">
-                  <path
-                    d="M19 0h-14c-2.76 0-5 2.24-5 5v14c0 2.76 2.24 5 5 5h14c2.76 0 5-2.24 5-5v-14c0-2.76-2.24-5-5-5zm-11 19h-3v-9h3v9zm-1.5-10.28c-.97 0-1.75-.79-1.75-1.75s.78-1.75 1.75-1.75 1.75.79 1.75 1.75-.78 1.75-1.75 1.75zm13.5 10.28h-3v-4.5c0-1.07-.93-2-2-2s-2 .93-2 2v4.5h-3v-9h3v1.22c.41-.63 1.36-1.22 2.25-1.22 1.93 0 3.75 1.57 3.75 4.25v4.75z" />
-                </svg>
-                LinkedIn: akasumitlamba
-              </a>
-            </li>
-            <li>
-              <a href="https://github.com/akasumitlamba" target="_blank" rel="noopener" class="know-more-link">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" style="flex-shrink:0;">
+          <div class="connect-row">
+            <span class="connect-label">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              by <strong>akasumitlamba</strong>
+            </span>
+            <div class="connect-icons">
+              <a href="https://github.com/akasumitlamba" target="_blank" rel="noopener" class="connect-icon-btn"
+                title="GitHub: akasumitlamba">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
                   <path
                     d="M12 .5C5.73.5.5 5.73.5 12c0 5.08 3.29 9.39 7.86 10.93.58.11.79-.25.79-.56v-2.02c-3.2.7-3.87-1.54-3.87-1.54-.53-1.34-1.3-1.7-1.3-1.7-1.06-.72.08-.71.08-.71 1.17.08 1.79 1.2 1.79 1.2 1.04 1.78 2.73 1.27 3.4.97.11-.75.41-1.27.75-1.56-2.56-.29-5.26-1.28-5.26-5.7 0-1.26.45-2.29 1.19-3.09-.12-.29-.52-1.46.11-3.04 0 0 .97-.31 3.18 1.18a11.1 11.1 0 012.9 0c2.21-1.49 3.18-1.18 3.18-1.18.63 1.58.23 2.75.11 3.04.74.8 1.19 1.83 1.19 3.09 0 4.43-2.7 5.41-5.27 5.7.42.36.8 1.09.8 2.2v3.26c0 .31.21.67.8.56C20.71 21.39 24 17.08 24 12c0-6.27-5.23-11.5-12-11.5z" />
                 </svg>
-                GitHub: akasumitlamba
               </a>
-            </li>
-            <li>
-              <a href="https://github.com/akasumitlamba/QuickClipPro/blob/main/PRIVACY.md" target="_blank"
-                rel="noopener" class="know-more-link">
-                <!-- Shield Icon -->
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
-                  style="flex-shrink:0;">
-                  <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              <a href="https://www.linkedin.com/in/akasumitlamba/" target="_blank" rel="noopener"
+                class="connect-icon-btn" title="LinkedIn: akasumitlamba">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                  <path
+                    d="M19 0h-14c-2.76 0-5 2.24-5 5v14c0 2.76 2.24 5 5 5h14c2.76 0 5-2.24 5-5v-14c0-2.76-2.24-5-5-5zm-11 19h-3v-9h3v9zm-1.5-10.28c-.97 0-1.75-.79-1.75-1.75s.78-1.75 1.75-1.75 1.75.79 1.75 1.75-.78 1.75-1.75 1.75zm13.5 10.28h-3v-4.5c0-1.07-.93-2-2-2s-2 .93-2 2v4.5h-3v-9h3v1.22c.41-.63 1.36-1.22 2.25-1.22 1.93 0 3.75 1.57 3.75 4.25v4.75z" />
                 </svg>
-                Privacy Policy
               </a>
-            </li>
-          </ul>
+            </div>
+          </div>
         </div>
       </div>
     </div>
